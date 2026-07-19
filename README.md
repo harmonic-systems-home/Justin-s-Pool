@@ -29,6 +29,16 @@ browser to check it, or drop it on the web server.
 
 Deploy by copying that one file to harmonicsystems.com.
 
+### Preview on GitHub Pages
+
+Pushes to `main` build and publish automatically via
+[.github/workflows/deploy.yml](.github/workflows/deploy.yml), to:
+
+<https://harmonic-systems-home.github.io/Justin-s-Pool/>
+
+This needs **Settings → Pages → Source: GitHub Actions** set once on the repo.
+It's a staging preview — harmonicsystems.com remains the intended home.
+
 ### Two notes on opening the built file directly
 
 - **State won't persist.** Safari blocks `localStorage` on `file://` URLs. The app

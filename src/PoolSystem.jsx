@@ -357,6 +357,17 @@ export default function PoolSystemV3() {
           {/* timer badges */}
           <TimerBadge x={P.pump.x - 10} y={P.pump.y - 105}
             lines={["INTELLIFLO SCHED", ...s.pumpWindows.map((w) => "filter: " + fmtWindow(w))]} />
+          {/* Switched power from the right Intermatic to the booster it controls.
+              Deliberately unlike the pipe runs — thin, dashed, amber — because
+              this carries volts, not water, and conflating the two is exactly
+              the confusion the diagram exists to prevent. Stops just short of
+              both the dial rim and the booster box rather than running beneath
+              them, since it draws after the nodes. */}
+          <path d={`M ${P.dial.x + 46} ${P.dial.y - 8} L ${P.booster.x - 60} ${P.booster.y + 8}`}
+            fill="none" stroke={C.timer} strokeWidth="2" strokeDasharray="5 4" strokeLinecap="round" />
+          <text x={(P.dial.x + 46 + P.booster.x - 60) / 2} y={P.dial.y - 16} textAnchor="middle"
+            style={{ font: "600 8.5px 'IBM Plex Mono', monospace", fill: C.timer }}>120 V</text>
+
           {/* The right Intermatic, drawn as itself rather than as a text badge.
               Scaled to ~0.44 so the whole mechanism plate fits the gap between
               the spa return and the booster node. Tap the lever to flip it. */}
@@ -501,6 +512,8 @@ export default function PoolSystemV3() {
         style={{ width: "100%", minHeight: 64, boxSizing: "border-box", font: "500 13px 'IBM Plex Mono', monospace", border: `1px solid ${C.pipe}`, borderRadius: 10, padding: 10, resize: "vertical" }} />
       <div style={{ font: "500 10.5px 'IBM Plex Mono', monospace", color: C.faint, marginTop: 8 }}>
         Color = temperature (blue cold, red hot — red only after a firing heater) · pattern = flow (dashes normal, dots restricted — dots only after a dirty filter) · tap equipment/valves to change state · timer fields persist.
+        <br />
+        The thin amber dashed line is switched 120 V from the timer to the booster — power, not water.
         <br />
         An amber heater means armed but <em>not</em> lit — below the flow switch the burner never fires, so the water downstream stays blue. That is the real "heat only works through the waterfall" complaint.
         {!isPersistent() && " · NOTE: this browser is blocking local storage (common when opening the file directly), so edits won't survive a reload."}

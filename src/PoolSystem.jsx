@@ -22,8 +22,11 @@ const C = {
 };
 
 const P = {
-  pool: { x: 80, y: 150 },
-  spa: { x: 80, y: 360 },
+  // x=105 rather than 80: these two carry the widest sub-labels, and now that
+  // boxes size to their text they need room to grow left without running off
+  // the viewBox (the card clips them).
+  pool: { x: 105, y: 150 },
+  spa: { x: 105, y: 360 },
   vDeck: { x: 210, y: 255 },
   pump: { x: 330, y: 210 },
   filter: { x: 450, y: 210 },
@@ -148,24 +151,50 @@ function solve(s) {
   return { active, heated, gpm, pumpRunning, heaterStatus, warnings, costPerHr };
 }
 
+// SVG <text> neither wraps nor clips, so anything wider than its container just
+// spills across the diagram. These boxes carry user-editable strings (the timer
+// windows) whose length we can't know ahead of time, so measure and size to fit
+// rather than guessing a fixed width.
+//
+// Both typefaces here are predictable enough to measure arithmetically: IBM Plex
+// Mono is monospace at a 0.6em advance, and Barlow Semi Condensed averages about
+// 0.5em. Approximate is fine — these only set container widths, and erring wide
+// costs nothing but a little whitespace.
+const monoWidth = (text, size) => text.length * size * 0.6;
+const condensedWidth = (text, size) => text.length * size * 0.5;
+
 function Box({ x, y, w = 88, h = 54, label, sub, tone = C.ink, onClick, small }) {
+  // Grow past the caller's nominal width if the text demands it.
+  const labelSize = small ? 11 : 13;
+  const need = Math.max(condensedWidth(label, labelSize), sub ? monoWidth(sub, 9.5) : 0) + 16;
+  const width = Math.max(w, Math.ceil(need));
   return (
-    <g transform={`translate(${x - w / 2} ${y - h / 2})`} onClick={onClick} style={{ cursor: onClick ? "pointer" : "default" }}>
-      <rect width={w} height={h} rx="8" fill="#fff" stroke={tone} strokeWidth="2" />
-      <text x={w / 2} y={h / 2 - (sub ? 4 : -4)} textAnchor="middle" style={{ font: `700 ${small ? 11 : 13}px 'Barlow Semi Condensed', sans-serif`, fill: tone, letterSpacing: "0.03em" }}>{label}</text>
-      {sub && <text x={w / 2} y={h / 2 + 14} textAnchor="middle" style={{ font: "500 9.5px 'IBM Plex Mono', monospace", fill: C.faint }}>{sub}</text>}
+    <g transform={`translate(${x - width / 2} ${y - h / 2})`} onClick={onClick} style={{ cursor: onClick ? "pointer" : "default" }}>
+      <rect width={width} height={h} rx="8" fill="#fff" stroke={tone} strokeWidth="2" />
+      <text x={width / 2} y={h / 2 - (sub ? 4 : -4)} textAnchor="middle" style={{ font: `700 ${labelSize}px 'Barlow Semi Condensed', sans-serif`, fill: tone, letterSpacing: "0.03em" }}>{label}</text>
+      {sub && <text x={width / 2} y={h / 2 + 14} textAnchor="middle" style={{ font: "500 9.5px 'IBM Plex Mono', monospace", fill: C.faint }}>{sub}</text>}
     </g>
   );
 }
 
-function TimerBadge({ x, y, lines }) {
-  const w = 132, h = 16 + lines.length * 13;
+// `anchor` positions the badge relative to x: "middle" centers it, "end" pins its
+// right edge there. The booster badge uses "end" so that as its editable time
+// string grows it expands leftward into open space instead of rightward into the
+// POLARIS BOOST node.
+function TimerBadge({ x, y, lines, anchor = "middle" }) {
+  const PAD = 9;
+  const w = Math.ceil(Math.max(
+    monoWidth(`⏱ ${lines[0]}`, 10),
+    ...lines.slice(1).map((l) => monoWidth(l, 9.5))
+  ) + PAD * 2);
+  const h = 16 + lines.length * 13;
+  const left = anchor === "end" ? x - w : x - w / 2;
   return (
-    <g transform={`translate(${x - w / 2} ${y})`}>
+    <g transform={`translate(${left} ${y})`}>
       <rect width={w} height={h} rx="7" fill="#FBF6E7" stroke={C.timer} strokeWidth="1.5" />
-      <text x="9" y="13" style={{ font: "700 10px 'IBM Plex Mono', monospace", fill: C.timer }}>⏱ {lines[0]}</text>
+      <text x={PAD} y="13" style={{ font: "700 10px 'IBM Plex Mono', monospace", fill: C.timer }}>⏱ {lines[0]}</text>
       {lines.slice(1).map((l, i) => (
-        <text key={i} x="9" y={26 + i * 13} style={{ font: "500 9.5px 'IBM Plex Mono', monospace", fill: C.timer }}>{l}</text>
+        <text key={i} x={PAD} y={26 + i * 13} style={{ font: "500 9.5px 'IBM Plex Mono', monospace", fill: C.timer }}>{l}</text>
       ))}
     </g>
   );
@@ -285,10 +314,10 @@ export default function PoolSystemV3() {
 
           {/* timer badges */}
           <TimerBadge x={P.pump.x - 10} y={P.pump.y - 105} lines={["INTELLIFLO SCHED", "filter: " + s.tPump]} />
-          <TimerBadge x={P.booster.x - 130} y={P.booster.y - 20} lines={["INTERMATIC (right)", "cleaner: " + s.tBooster]} />
+          <TimerBadge x={P.booster.x - 66} y={P.booster.y - 20} anchor="end" lines={["INTERMATIC (right)", "cleaner: " + s.tBooster]} />
 
           <ValveDot x={P.vDeck.x} y={P.vDeck.y} angle={s.deck === "pool" ? 0 : 180} label="DECK PAIR"
-            sub={s.deck === "pool" ? "∥ house = POOL" : "180° = SPA"}
+            sub={s.deck === "pool" ? "parallel = POOL" : "180° = SPA"}
             onTap={() => setS((p) => ({ ...p, deck: p.deck === "pool" ? "spa" : "pool" }))} />
           <ValveDot x={P.vWF.x} y={P.vWF.y} angle={s.vwf === "pool" ? 0 : 90} label="PAD VALVE"
             sub={s.vwf === "pool" ? "up = POOL" : "WATERFALL"}

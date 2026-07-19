@@ -1,5 +1,8 @@
 import React, { useState, useEffect, useRef } from "react";
 import { load, save, isPersistent } from "./storage.js";
+import { fmtWindow } from "./schedule.js";
+import { solve, DOWNSTREAM_OF_FILTER } from "./simulate.js";
+import Timeline from "./Timeline.jsx";
 
 // ─────────────────────────────────────────────────────────────
 // JUSTIN'S POOL — documented system map v3
@@ -19,6 +22,12 @@ const C = {
   pad: "#EDF1F0", ink: "#17313C", faint: "#6C8089",
   pipe: "#C3CDD0", flow: "#1F8FD4", hot: "#D2372B",
   warn: "#C4452B", ok: "#2E8B57", valve: "#2A3B42", timer: "#8A6D1D",
+  // Amber, deliberately far from `hot`. A heater that is armed but stalled on
+  // low flow used to render in a red almost identical to a firing one, which
+  // made a red heater sitting next to blue (unheated) water look like a
+  // rendering bug rather than the actual complaint: below the flow switch, the
+  // burner never lights, so there is no hot water to draw.
+  stall: "#E08A1E",
 };
 
 const P = {
@@ -102,53 +111,28 @@ const PROCEDURES = {
 const DEFAULT = {
   deck: "pool", vwf: "pool", heaterMode: "standby",
   pump: "schedule", filterDirty: true, boosterOn: false,
-  tBooster: "~12:00–2:00 PM (verify)",
-  tPump: "after midnight (verify)",
+  // NOT YET VERIFIED — these are Justin's description ("after midnight",
+  // "around noon to two"), not values read off the IntelliFlo menu or the
+  // Intermatic trippers. See §6 of the handoff doc.
+  //
+  // Note what this default implies on the timeline: a single overnight
+  // filtration window leaves the midday booster running with no pump behind
+  // it. That's exactly the open question from the survey — whether the
+  // IntelliFlo also has a midday window nobody has read yet. Showing the
+  // conflict is the point; don't "fix" it by inventing a second window.
+  pumpWindows: [{ start: "00:30", end: "06:00" }],
+  booster: { start: "12:00", end: "14:00" },
+  schedVerified: false,
 };
 
-function solve(s) {
-  const active = new Set();
-  const heated = new Set();
-  const warnings = [];
-
-  const pumpRunning = s.pump === "manual3" || s.pump === "schedule-running";
-  let gpm = 0;
-  if (pumpRunning) {
-    gpm = s.pump === "manual3" ? 70 : 45;
-    if (s.filterDirty) gpm = Math.round(gpm * 0.55);
-    if (s.vwf === "waterfall") gpm += 12;
-    if (s.deck === "pool") active.add("poolSuc"); else active.add("spaSuc");
-    active.add("deckPump").add("pumpFilter").add("filterHeater").add("heaterVWF");
-    if (s.deck === "spa") active.add("spaRet");
-    else if (s.vwf === "pool") active.add("vwfPool");
-    else active.add("vwfFalls");
-  }
-
-  const FLOW_SWITCH = 40;
-  let heaterStatus = "standby";
-  const wantsHeat = s.heaterMode !== "standby";
-  if (wantsHeat && pumpRunning) {
-    if (gpm >= FLOW_SWITCH) {
-      heaterStatus = "firing";
-      ["heaterVWF", "vwfPool", "vwfFalls", "spaRet"].forEach((e) => active.has(e) && heated.add(e));
-    } else {
-      heaterStatus = "lowflow";
-      warnings.push(`~${gpm} GPM is under the ~${FLOW_SWITCH} GPM flow switch — heater won't fire. Justin's workaround: pad valve → WATERFALL. Real fix: clean the filter.`);
-    }
-  }
-  if (wantsHeat && s.pump === "schedule")
-    warnings.push(`Heater left on ${s.heaterMode.toUpperCase()} — it WILL fire during the scheduled overnight filter run (${s.tPump}), burning gas unattended. Return MODE to STANDBY after heating.`);
-  if (wantsHeat && s.pump === "off") warnings.push("Heater mode set but pump is off — no flow, no fire.");
-  if (s.heaterMode === "spa" && s.deck !== "spa") warnings.push("Heater in SPA mode but deck valves on POOL — pool water, spa thermostat.");
-  if (s.heaterMode === "pool" && s.deck === "spa") warnings.push("Heater in POOL mode but deck valves on SPA — spa can badly overheat.");
-
-  if (s.boosterOn && !pumpRunning)
-    warnings.push(`Booster running with main pump off — dead-heading, burns seals. Its timer window (${s.tBooster}) must sit inside an IntelliFlo run window.`);
-  if (s.boosterOn && pumpRunning) active.add("boostTap").add("boostCleaner");
-  if (s.filterDirty) warnings.push("Filter flagged DIRTY — flow cut ~45% everywhere downstream.");
-
-  const costPerHr = heaterStatus === "firing" ? 8.8 : 0;
-  return { active, heated, gpm, pumpRunning, heaterStatus, warnings, costPerHr };
+// The v3 prototype stored these as free text (tPump / tBooster). Drop those
+// keys on load rather than trying to parse prose back into times.
+function migrate(saved) {
+  if (!saved || typeof saved !== "object") return {};
+  const { tPump, tBooster, ...rest } = saved;
+  if (!Array.isArray(rest.pumpWindows)) delete rest.pumpWindows;
+  if (!rest.booster || typeof rest.booster !== "object") delete rest.booster;
+  return rest;
 }
 
 // SVG <text> neither wraps nor clips, so anything wider than its container just
@@ -214,11 +198,36 @@ function ValveDot({ x, y, angle, label, sub, onTap }) {
   );
 }
 
+// Native <input type="time"> rather than a custom picker: it gives a phone
+// keyboard the owner already knows, validates itself, and emits the "HH:MM"
+// that schedule.js consumes directly.
+function WindowRow({ C, label, window: w, onChange, onRemove }) {
+  const field = {
+    font: "500 12px 'IBM Plex Mono', monospace", padding: "6px 8px",
+    border: `1.5px solid ${C.timer}`, borderRadius: 8, color: C.ink, background: "#fff",
+  };
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+      <span style={{ font: "500 12px 'IBM Plex Mono', monospace", color: C.timer, minWidth: 210 }}>{label}</span>
+      <input type="time" value={w.start} style={field}
+        onChange={(e) => onChange({ ...w, start: e.target.value })} />
+      <span style={{ color: C.faint }}>→</span>
+      <input type="time" value={w.end} style={field}
+        onChange={(e) => onChange({ ...w, end: e.target.value })} />
+      <span style={{ font: "500 11px 'IBM Plex Mono', monospace", color: C.faint }}>{fmtWindow(w)}</span>
+      {onRemove && (
+        <button onClick={onRemove} title="remove window"
+          style={{ font: "600 12px 'IBM Plex Mono', monospace", padding: "5px 9px", borderRadius: 8, border: `1.5px solid ${C.pipe}`, background: "#fff", color: C.faint, cursor: "pointer" }}>×</button>
+      )}
+    </div>
+  );
+}
+
 export default function PoolSystemV3() {
   // Read persisted state during the initial render rather than in an effect —
   // localStorage is synchronous, so there's no need for the load-then-merge
   // dance (and no first-paint flash of defaults).
-  const [s, setS] = useState(() => ({ ...DEFAULT, ...load(KEY_STATE, {}) }));
+  const [s, setS] = useState(() => ({ ...DEFAULT, ...migrate(load(KEY_STATE, {})) }));
   const [proc, setProc] = useState(null);
   const [notes, setNotes] = useState(() => load(KEY_NOTES, ""));
   const firstRender = useRef(true);
@@ -230,6 +239,20 @@ export default function PoolSystemV3() {
   }, [s]);
 
   const saveNotes = (v) => { setNotes(v); save(KEY_NOTES, v); };
+
+  // "now" marker on the timeline, refreshed each minute so a page left open on
+  // a phone at the pad doesn't drift.
+  const [nowMinutes, setNowMinutes] = useState(() => {
+    const d = new Date();
+    return d.getHours() * 60 + d.getMinutes();
+  });
+  useEffect(() => {
+    const id = setInterval(() => {
+      const d = new Date();
+      setNowMinutes(d.getHours() * 60 + d.getMinutes());
+    }, 60_000);
+    return () => clearInterval(id);
+  }, []);
 
   const r = solve(s);
   const applyProc = (k) => {
@@ -276,10 +299,10 @@ export default function PoolSystemV3() {
         </span>
         <span style={{
           background: "#fff", borderRadius: 10, padding: "7px 11px",
-          border: `2px solid ${r.heaterStatus === "firing" ? C.hot : r.heaterStatus === "lowflow" ? C.warn : C.pipe}`,
-          color: r.heaterStatus === "firing" ? C.hot : r.heaterStatus === "lowflow" ? C.warn : C.faint,
+          border: `2px solid ${r.heaterStatus === "firing" ? C.hot : r.heaterStatus === "lowflow" ? C.stall : C.pipe}`,
+          color: r.heaterStatus === "firing" ? C.hot : r.heaterStatus === "lowflow" ? C.stall : C.faint,
         }}>
-          HEATER {s.heaterMode.toUpperCase()}{r.heaterStatus === "firing" ? ` · FIRING ~$${r.costPerHr.toFixed(2)}/hr` : r.heaterStatus === "lowflow" ? " · LOW FLOW" : ""}
+          HEATER {s.heaterMode.toUpperCase()}{r.heaterStatus === "firing" ? ` · FIRING ~$${r.costPerHr.toFixed(2)}/hr` : r.heaterStatus === "lowflow" ? " · ARMED BUT NOT FIRING" : ""}
         </span>
       </div>
 
@@ -292,7 +315,6 @@ export default function PoolSystemV3() {
             const col = stroke(e.id);
             if (!col) return null;
             // pattern = flow rate: dots only on legs downstream of the choked filter
-            const DOWNSTREAM_OF_FILTER = ["filterHeater", "heaterVWF", "vwfPool", "vwfFalls", "spaRet", "boostTap", "boostCleaner"];
             const restricted = s.filterDirty && DOWNSTREAM_OF_FILTER.includes(e.id);
             // color = temperature (red only downstream of a firing heater, via stroke())
             const cls = restricted ? (col === C.hot ? "heatdots" : "flowdots") : (col === C.hot ? "heatdash" : "flowdash");
@@ -304,7 +326,9 @@ export default function PoolSystemV3() {
           <Box x={P.pump.x} y={P.pump.y} label="INTELLIFLO" sub={pumpSub} tone={r.pumpRunning ? C.ink : C.faint} onClick={cyclePump} />
           <Box x={P.filter.x} y={P.filter.y} label="FILTER" sub={s.filterDirty ? "DIRTY" : "clean"} tone={s.filterDirty ? C.warn : C.ok}
             onClick={() => setS((p) => ({ ...p, filterDirty: !p.filterDirty }))} />
-          <Box x={P.heater.x} y={P.heater.y} label="HAYWARD" sub={`mode: ${s.heaterMode}`} tone={r.heaterStatus === "firing" ? C.hot : r.heaterStatus === "lowflow" ? C.warn : C.faint}
+          <Box x={P.heater.x} y={P.heater.y} label="HAYWARD"
+            sub={r.heaterStatus === "firing" ? "FIRING" : r.heaterStatus === "lowflow" ? "no fire: low flow" : `mode: ${s.heaterMode}`}
+            tone={r.heaterStatus === "firing" ? C.hot : r.heaterStatus === "lowflow" ? C.stall : C.faint}
             onClick={() => setS((p) => ({ ...p, heaterMode: p.heaterMode === "standby" ? "pool" : p.heaterMode === "pool" ? "spa" : "standby" }))} />
           <Box x={P.poolRet.x} y={P.poolRet.y} label="POOL RETURNS" small w={104} />
           <Box x={P.waterfall.x} y={P.waterfall.y} label="WATERFALL" small w={104} />
@@ -313,8 +337,10 @@ export default function PoolSystemV3() {
           <Box x={P.cleaner.x} y={P.cleaner.y} label="HOSE CLEANER" small w={110} tone={C.faint} />
 
           {/* timer badges */}
-          <TimerBadge x={P.pump.x - 10} y={P.pump.y - 105} lines={["INTELLIFLO SCHED", "filter: " + s.tPump]} />
-          <TimerBadge x={P.booster.x - 66} y={P.booster.y - 20} anchor="end" lines={["INTERMATIC (right)", "cleaner: " + s.tBooster]} />
+          <TimerBadge x={P.pump.x - 10} y={P.pump.y - 105}
+            lines={["INTELLIFLO SCHED", ...s.pumpWindows.map((w) => "filter: " + fmtWindow(w))]} />
+          <TimerBadge x={P.booster.x - 66} y={P.booster.y - 20} anchor="end"
+            lines={["INTERMATIC (right)", "cleaner: " + fmtWindow(s.booster)]} />
 
           <ValveDot x={P.vDeck.x} y={P.vDeck.y} angle={s.deck === "pool" ? 0 : 180} label="DECK PAIR"
             sub={s.deck === "pool" ? "parallel = POOL" : "180° = SPA"}
@@ -325,17 +351,41 @@ export default function PoolSystemV3() {
         </svg>
       </div>
 
-      {/* editable nominal times */}
-      <div style={{ display: "flex", gap: 10, flexWrap: "wrap", margin: "10px 0", font: "500 12px 'IBM Plex Mono', monospace" }}>
-        <label style={{ display: "flex", flexDirection: "column", gap: 3, color: C.timer }}>
-          IntelliFlo filter schedule
-          <input value={s.tPump} onChange={(e) => setS((p) => ({ ...p, tPump: e.target.value }))}
-            style={{ font: "inherit", padding: "7px 9px", border: `1.5px solid ${C.timer}`, borderRadius: 8, width: 230, color: C.ink }} />
-        </label>
-        <label style={{ display: "flex", flexDirection: "column", gap: 3, color: C.timer }}>
-          Booster timer window (right Intermatic)
-          <input value={s.tBooster} onChange={(e) => setS((p) => ({ ...p, tBooster: e.target.value }))}
-            style={{ font: "inherit", padding: "7px 9px", border: `1.5px solid ${C.timer}`, borderRadius: 8, width: 230, color: C.ink }} />
+      <Timeline C={C} pumpWindows={s.pumpWindows} booster={s.booster}
+        boosterEnabled={s.boosterOn} heaterMode={s.heaterMode} nowMinutes={nowMinutes} />
+
+      {/* editable schedule windows — still placeholders until §6 is filled in */}
+      <div style={{ background: "#fff", border: `1px solid ${C.pipe}`, borderRadius: 12, padding: "12px 14px", marginBottom: 10 }}>
+        <div style={{ display: "flex", alignItems: "baseline", gap: 10, flexWrap: "wrap", marginBottom: 8 }}>
+          <div style={{ font: "700 15px 'Barlow Semi Condensed'" }}>Schedule windows</div>
+          {!s.schedVerified && (
+            <span style={{ font: "600 10px 'IBM Plex Mono', monospace", color: C.timer, background: "#FBF6E7", border: `1px solid ${C.timer}`, borderRadius: 6, padding: "2px 6px" }}>
+              UNVERIFIED — read the IntelliFlo menu + timer trippers
+            </span>
+          )}
+        </div>
+
+        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          {s.pumpWindows.map((w, i) => (
+            <WindowRow key={i} C={C} label={`IntelliFlo filtration ${s.pumpWindows.length > 1 ? `#${i + 1}` : ""}`}
+              window={w}
+              onChange={(next) => setS((p) => ({ ...p, pumpWindows: p.pumpWindows.map((x, j) => (j === i ? next : x)) }))}
+              onRemove={s.pumpWindows.length > 1 ? () => setS((p) => ({ ...p, pumpWindows: p.pumpWindows.filter((_, j) => j !== i) })) : null} />
+          ))}
+          <div>
+            <button onClick={() => setS((p) => ({ ...p, pumpWindows: [...p.pumpWindows, { start: "12:00", end: "14:00" }] }))}
+              style={{ font: "600 11.5px 'IBM Plex Mono', monospace", padding: "6px 10px", borderRadius: 8, border: `1.5px dashed ${C.faint}`, background: "#fff", color: C.faint, cursor: "pointer" }}>
+              + add filtration window
+            </button>
+          </div>
+          <WindowRow C={C} label="Booster (right Intermatic)" window={s.booster}
+            onChange={(next) => setS((p) => ({ ...p, booster: next }))} />
+        </div>
+
+        <label style={{ display: "flex", alignItems: "center", gap: 7, marginTop: 10, font: "500 11.5px 'IBM Plex Mono', monospace", color: C.faint, cursor: "pointer" }}>
+          <input type="checkbox" checked={!!s.schedVerified}
+            onChange={(e) => setS((p) => ({ ...p, schedVerified: e.target.checked }))} />
+          These times were read off the equipment, not guessed
         </label>
       </div>
 
@@ -360,9 +410,9 @@ export default function PoolSystemV3() {
       <div style={{ background: "#fff", border: `1px solid ${C.pipe}`, borderRadius: 12, padding: "12px 14px", margin: "4px 0 10px" }}>
         <div style={{ font: "700 15px 'Barlow Semi Condensed'", marginBottom: 6 }}>Who controls what</div>
         <div style={{ font: "500 12.5px 'IBM Plex Mono', monospace", lineHeight: 1.6 }}>
-          IntelliFlo — internal schedule for filtration ({s.tPump}); manual Speed 3 for heating, ~5 hr Time Out.<br />
+          IntelliFlo — internal schedule for filtration ({s.pumpWindows.map(fmtWindow).join(", ")}); manual Speed 3 for heating, ~5 hr Time Out.<br />
           Hayward heater — own thermostat, no clock: fires whenever mode ≠ STANDBY and water flows. Hence the standby discipline.<br />
-          Right Intermatic (clock correct) — Polaris booster, {s.tBooster}, dirty season only.<br />
+          Right Intermatic (clock correct) — Polaris booster, {fmtWindow(s.booster)}, dirty season only.<br />
           Left Intermatic (was 12 h off) + SunTouch (AIR Error) — legacy; verify nothing real attached.<br />
           Deck valve pair — manual pool/spa select · Pad valve — pool vs waterfall return.
         </div>
@@ -373,6 +423,8 @@ export default function PoolSystemV3() {
         style={{ width: "100%", minHeight: 64, boxSizing: "border-box", font: "500 13px 'IBM Plex Mono', monospace", border: `1px solid ${C.pipe}`, borderRadius: 10, padding: 10, resize: "vertical" }} />
       <div style={{ font: "500 10.5px 'IBM Plex Mono', monospace", color: C.faint, marginTop: 8 }}>
         Color = temperature (blue cold, red hot — red only after a firing heater) · pattern = flow (dashes normal, dots restricted — dots only after a dirty filter) · tap equipment/valves to change state · timer fields persist.
+        <br />
+        An amber heater means armed but <em>not</em> lit — below the flow switch the burner never fires, so the water downstream stays blue. That is the real "heat only works through the waterfall" complaint.
         {!isPersistent() && " · NOTE: this browser is blocking local storage (common when opening the file directly), so edits won't survive a reload."}
       </div>
     </div>

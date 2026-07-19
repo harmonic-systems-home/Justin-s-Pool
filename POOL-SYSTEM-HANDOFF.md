@@ -67,6 +67,12 @@ Four clocks exist; only some matter:
 
 1. **Heater left on POOL** → fires unattended during scheduled filter runs (gas $).
 2. **Dirty filter** → GPM below heater flow switch → no heat without waterfall workaround.
+   **Confirmed by Justin, July 2026:** with heater on POOL and the main pump
+   started, the burner attempts ignition, fails, and the panel shows **"Service"**
+   — the flow-switch lockout. Switching the pad valve to WATERFALL passes enough
+   flow for it to light and stay lit. This is the observed symptom behind the
+   "heat only works via waterfall" complaint, and it matches the simulator's
+   flow-switch model.
 3. **Booster vs pump clocks**: booster must run only inside an IntelliFlo run window; nothing enforces this. Left-timer 12 h error historically may have run loads overnight.
 4. **Mode/valve mismatch**: heater SPA mode with valves on POOL (or vice versa) heats the wrong body against the wrong setpoint.
 5. **Spa drain-down**: suction from spa while returning to pool.

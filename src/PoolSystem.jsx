@@ -3,6 +3,7 @@ import { load, save, isPersistent } from "./storage.js";
 import { fmtWindow } from "./schedule.js";
 import { solve, DOWNSTREAM_OF_FILTER } from "./simulate.js";
 import Timeline from "./Timeline.jsx";
+import IntermaticDial from "./IntermaticDial.jsx";
 
 // ─────────────────────────────────────────────────────────────
 // JUSTIN'S POOL — documented system map v3
@@ -380,6 +381,26 @@ export default function PoolSystemV3() {
           </div>
           <WindowRow C={C} label="Booster (right Intermatic)" window={s.booster}
             onChange={(next) => setS((p) => ({ ...p, booster: next }))} />
+        </div>
+
+        {/* Drawn to match the physical dial so the two can be compared side by
+            side at the pad — the green arc is the stretch between the trippers. */}
+        <div style={{ display: "flex", gap: 16, alignItems: "center", flexWrap: "wrap", marginTop: 12 }}>
+          <IntermaticDial C={C} window={s.booster} nowMinutes={nowMinutes} size={230} />
+          <div style={{ font: "500 12px 'IBM Plex Mono', monospace", color: C.faint, lineHeight: 1.6, maxWidth: 380 }}>
+            <div style={{ font: "700 14px 'Barlow Semi Condensed'", color: C.ink, marginBottom: 4 }}>
+              Right Intermatic — Polaris booster
+            </div>
+            The silver tabs are the trippers: outer tab ON, inner tab OFF. Green is
+            the stretch where the switch is closed and the booster has power.
+            The grey pointer is the current time — on the real timer the dial turns
+            beneath a fixed pointer instead, so compare the <em>numeral</em> at the
+            pointer, not the pointer's position.
+            <div style={{ marginTop: 8, color: C.timer }}>
+              Clock was correct on this timer as of the July 2026 survey. The left
+              Intermatic was 12 h off and its load is still unidentified.
+            </div>
+          </div>
         </div>
 
         <label style={{ display: "flex", alignItems: "center", gap: 7, marginTop: 10, font: "500 11.5px 'IBM Plex Mono', monospace", color: C.faint, cursor: "pointer" }}>

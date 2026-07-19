@@ -60,12 +60,22 @@ export function solve(s) {
   if (s.boosterOn && pumpRunning) active.add("boostTap").add("boostCleaner");
   if (s.filterDirty) warnings.push("Filter flagged DIRTY — flow cut ~45% everywhere downstream.");
 
-  // Schedule-level check, independent of the live toggles above: does the
-  // booster's timer window actually sit inside a filtration window? Nothing on
-  // this pad enforces that, and the two clocks were set years apart.
-  const orphan = uncoveredMinutes(s.booster, s.pumpWindows);
-  if (orphan > 0)
-    warnings.push(`Booster timer window (${fmtWindow(s.booster)}) sits ${orphan} min outside every IntelliFlo filtration window — during that stretch the Polaris runs with no main pump behind it. Either the IntelliFlo has a midday window nobody has read yet, or this timer needs moving.`);
+  // Schedule-level checks on the right Intermatic. What it does depends on
+  // whether the dogs are installed, so the two cases warn about different
+  // things — an orphaned window matters only if the window is live at all.
+  const rt = s.rightTimer ?? { dogsIn: true, lever: "on" };
+  if (rt.dogsIn) {
+    // Does the booster's window actually sit inside a filtration window?
+    // Nothing on this pad enforces that, and the two clocks were set years apart.
+    const orphan = uncoveredMinutes(s.booster, s.pumpWindows);
+    if (orphan > 0)
+      warnings.push(`Booster timer window (${fmtWindow(s.booster)}) sits ${orphan} min outside every IntelliFlo filtration window — during that stretch the Polaris runs with no main pump behind it. Either the IntelliFlo has a midday window nobody has read yet, or this timer needs moving.`);
+    if (rt.lever === "off")
+      warnings.push("Right Intermatic: dogs are installed but the manual lever is OFF — the booster will not run at its scheduled window.");
+  } else if (rt.lever === "on") {
+    // Dogs out means nothing ever switches it off again.
+    warnings.push("Right Intermatic: trip dogs are OUT (off-season manual mode) and the lever is ON — the booster has continuous power and will run whenever it is energized, including with the main pump stopped. Dead-heads the Polaris. Pull the lever to OFF or reinstall the dogs.");
+  }
 
   const costPerHr = heaterStatus === "firing" ? 8.8 : 0;
   return { active, heated, gpm, pumpRunning, heaterStatus, warnings, costPerHr };

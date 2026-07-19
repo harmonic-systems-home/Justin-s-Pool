@@ -17,14 +17,27 @@ const LABEL_W = 116;
 const RIGHT_PAD = 14;
 const AXIS_H = 22;
 
-export default function Timeline({ C, pumpWindows, booster, boosterEnabled, heaterMode, nowMinutes }) {
+export default function Timeline({ C, pumpWindows, booster, rightTimer, heaterMode, nowMinutes }) {
   const width = 1000;
   const trackX = LABEL_W;
   const trackW = width - LABEL_W - RIGHT_PAD;
   const xOf = (mins) => trackX + (mins / DAY) * trackW;
 
   const heaterArmed = heaterMode !== "standby";
-  const orphanMins = boosterEnabled ? uncoveredMinutes(booster, pumpWindows) : 0;
+  const dogsIn = rightTimer?.dogsIn ?? true;
+  const leverOn = (rightTimer?.lever ?? "on") === "on";
+  // Only a timer with its dogs installed has a window to be orphaned.
+  const orphanMins = dogsIn ? uncoveredMinutes(booster, pumpWindows) : 0;
+
+  // With the dogs out the dial actuates nothing, so the booster lane is not a
+  // schedule at all: lever ON means continuous power across the whole day (drawn
+  // in warn colour, since nothing will ever switch it back off), lever OFF means
+  // no power at any hour.
+  const boosterBars = dogsIn
+    ? spans(booster).map((sp) => ({ sp, fill: orphanMins > 0 ? C.warn : C.ok }))
+    : leverOn
+      ? [{ sp: [0, DAY], fill: C.warn }]
+      : [];
 
   const lanes = [
     {
@@ -36,15 +49,9 @@ export default function Timeline({ C, pumpWindows, booster, boosterEnabled, heat
     {
       key: "booster",
       label: "INTERMATIC",
-      sub: "Polaris boost",
-      bars: boosterEnabled
-        ? spans(booster).map((sp) => ({
-            // Red where the booster runs with no pump behind it.
-            sp,
-            fill: orphanMins > 0 ? C.warn : C.ok,
-          }))
-        : [],
-      empty: boosterEnabled ? null : "off-season",
+      sub: dogsIn ? "Polaris boost" : "manual (dogs out)",
+      bars: boosterBars,
+      empty: "dogs out, lever OFF — booster has no power at any hour",
     },
     {
       key: "heater",
@@ -130,7 +137,9 @@ export default function Timeline({ C, pumpWindows, booster, boosterEnabled, heat
 
       <div style={{ font: "500 11px 'IBM Plex Mono', monospace", color: C.faint, marginTop: 6, lineHeight: 1.5 }}>
         {pumpWindows.map((w, i) => <span key={i}>filtration {fmtWindow(w)}{i < pumpWindows.length - 1 ? " · " : ""}</span>)}
-        {boosterEnabled && <> · booster {fmtWindow(booster)}</>}
+        {dogsIn
+          ? <> · booster {fmtWindow(booster)}</>
+          : <> · booster on manual lever ({leverOn ? "ON — continuous" : "OFF"}), no schedule</>}
       </div>
     </div>
   );

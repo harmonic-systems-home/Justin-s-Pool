@@ -3,7 +3,7 @@ import { load, save, isPersistent } from "./storage.js";
 import { fmtWindow } from "./schedule.js";
 import { solve, DOWNSTREAM_OF_FILTER } from "./simulate.js";
 import Timeline from "./Timeline.jsx";
-import IntermaticDial from "./IntermaticDial.jsx";
+import IntermaticDial, { DialGraphic, DialDefs } from "./IntermaticDial.jsx";
 
 // ─────────────────────────────────────────────────────────────
 // JUSTIN'S POOL — documented system map v3
@@ -46,6 +46,9 @@ const P = {
   waterfall: { x: 860, y: 290 },
   booster: { x: 450, y: 360 },
   cleaner: { x: 640, y: 400 },
+  // Right Intermatic dial. Sits in the open pocket below the deck valve and
+  // left of the booster it powers.
+  dial: { x: 310, y: 380 },
 };
 
 const EDGES = [
@@ -124,6 +127,19 @@ const DEFAULT = {
   pumpWindows: [{ start: "00:30", end: "06:00" }],
   booster: { start: "12:00", end: "14:00" },
   schedVerified: false,
+
+  // Right Intermatic — Polaris booster. As of the July 2026 survey the trip
+  // pins ("dogs") are OUT for the off-season, so the dial actuates nothing and
+  // the timer is a plain manual switch, currently left OFF. When the trees
+  // start dropping and the dogs go back in, it resumes timer duty on the window
+  // above. Lever position and dogs are independent: dogs out + lever ON would
+  // mean the booster runs continuously, which is why the sim warns about it.
+  rightTimer: { dogsIn: false, lever: "off" },
+
+  // Left Intermatic — load still unidentified (§6). Lever observed ON, which
+  // matters: whatever it feeds is currently energized on its schedule, and its
+  // clock was 12 h off at survey time.
+  leftTimer: { lever: "on" },
 };
 
 // The v3 prototype stored these as free text (tPump / tBooster). Drop those
@@ -309,6 +325,7 @@ export default function PoolSystemV3() {
 
       <div style={{ background: "#fff", borderRadius: 14, border: `1px solid ${C.pipe}`, overflow: "hidden" }}>
         <svg viewBox="0 0 1000 500" style={{ width: "100%", display: "block" }}>
+          <DialDefs />
           {EDGES.map((e) => (
             <path key={e.id} d={e.d} fill="none" stroke={C.pipe} strokeWidth="9" strokeLinejoin="round" />
           ))}
@@ -340,8 +357,22 @@ export default function PoolSystemV3() {
           {/* timer badges */}
           <TimerBadge x={P.pump.x - 10} y={P.pump.y - 105}
             lines={["INTELLIFLO SCHED", ...s.pumpWindows.map((w) => "filter: " + fmtWindow(w))]} />
-          <TimerBadge x={P.booster.x - 66} y={P.booster.y - 20} anchor="end"
-            lines={["INTERMATIC (right)", "cleaner: " + fmtWindow(s.booster)]} />
+          {/* The right Intermatic, drawn as itself rather than as a text badge.
+              Scaled to ~0.44 so the whole mechanism plate fits the gap between
+              the spa return and the booster node. Tap the lever to flip it. */}
+          <g transform={`translate(${P.dial.x} ${P.dial.y}) scale(0.44)`}>
+            <DialGraphic C={C} window={s.booster} nowMinutes={nowMinutes}
+              dogsIn={s.rightTimer.dogsIn} lever={s.rightTimer.lever}
+              onToggleLever={() => setS((p) => ({
+                ...p, rightTimer: { ...p.rightTimer, lever: p.rightTimer.lever === "on" ? "off" : "on" },
+              }))} />
+          </g>
+          <text x={P.dial.x} y={P.dial.y - 62} textAnchor="middle"
+            style={{ font: "700 11px 'Barlow Semi Condensed'", fill: C.ink }}>INTERMATIC (right)</text>
+          <text x={P.dial.x} y={P.dial.y + 82} textAnchor="middle"
+            style={{ font: "500 9px 'IBM Plex Mono', monospace", fill: s.rightTimer.dogsIn ? C.timer : C.faint }}>
+            {s.rightTimer.dogsIn ? `timer: ${fmtWindow(s.booster)}` : `manual — lever ${s.rightTimer.lever.toUpperCase()}`}
+          </text>
 
           <ValveDot x={P.vDeck.x} y={P.vDeck.y} angle={s.deck === "pool" ? 0 : 180} label="DECK PAIR"
             sub={s.deck === "pool" ? "parallel = POOL" : "180° = SPA"}
@@ -353,7 +384,7 @@ export default function PoolSystemV3() {
       </div>
 
       <Timeline C={C} pumpWindows={s.pumpWindows} booster={s.booster}
-        boosterEnabled={s.boosterOn} heaterMode={s.heaterMode} nowMinutes={nowMinutes} />
+        rightTimer={s.rightTimer} heaterMode={s.heaterMode} nowMinutes={nowMinutes} />
 
       {/* editable schedule windows — still placeholders until §6 is filled in */}
       <div style={{ background: "#fff", border: `1px solid ${C.pipe}`, borderRadius: 12, padding: "12px 14px", marginBottom: 10 }}>
@@ -383,22 +414,48 @@ export default function PoolSystemV3() {
             onChange={(next) => setS((p) => ({ ...p, booster: next }))} />
         </div>
 
-        {/* Drawn to match the physical dial so the two can be compared side by
-            side at the pad — the green arc is the stretch between the trippers. */}
-        <div style={{ display: "flex", gap: 16, alignItems: "center", flexWrap: "wrap", marginTop: 12 }}>
-          <IntermaticDial C={C} window={s.booster} nowMinutes={nowMinutes} size={230} />
-          <div style={{ font: "500 12px 'IBM Plex Mono', monospace", color: C.faint, lineHeight: 1.6, maxWidth: 380 }}>
-            <div style={{ font: "700 14px 'Barlow Semi Condensed'", color: C.ink, marginBottom: 4 }}>
-              Right Intermatic — Polaris booster
+        {/* Both dials in the Timing Control Center, drawn to match the physical
+            units so they can be compared side by side at the pad. */}
+        <div style={{ display: "flex", gap: 22, alignItems: "flex-start", flexWrap: "wrap", marginTop: 14 }}>
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}>
+            <div style={{ font: "700 14px 'Barlow Semi Condensed'", color: C.ink }}>Right — Polaris booster</div>
+            <IntermaticDial C={C} window={s.booster} nowMinutes={nowMinutes} size={215}
+              dogsIn={s.rightTimer.dogsIn} lever={s.rightTimer.lever}
+              onToggleLever={() => setS((p) => ({
+                ...p, rightTimer: { ...p.rightTimer, lever: p.rightTimer.lever === "on" ? "off" : "on" },
+              }))} />
+            <label style={{ display: "flex", alignItems: "center", gap: 6, font: "500 11px 'IBM Plex Mono', monospace", color: C.faint, cursor: "pointer" }}>
+              <input type="checkbox" checked={s.rightTimer.dogsIn}
+                onChange={(e) => setS((p) => ({ ...p, rightTimer: { ...p.rightTimer, dogsIn: e.target.checked } }))} />
+              trip dogs installed
+            </label>
+          </div>
+
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}>
+            <div style={{ font: "700 14px 'Barlow Semi Condensed'", color: C.ink }}>Left — load unknown</div>
+            <IntermaticDial C={C} window={{ start: "", end: "" }} nowMinutes={nowMinutes} size={215}
+              dogsIn={false} lever={s.leftTimer.lever}
+              caption={<>clock was 12 h off at survey · lever {s.leftTimer.lever.toUpperCase()}</>}
+              onToggleLever={() => setS((p) => ({
+                ...p, leftTimer: { ...p.leftTimer, lever: p.leftTimer.lever === "on" ? "off" : "on" },
+              }))} />
+          </div>
+
+          <div style={{ font: "500 12px 'IBM Plex Mono', monospace", color: C.faint, lineHeight: 1.6, flex: "1 1 260px", minWidth: 260 }}>
+            The silver tabs on the dial rim are the trip dogs: outer tab ON, inner
+            tab OFF. Green marks the stretch where the switch is closed. The grey
+            triangle is the current time — on the real timer the dial turns beneath
+            a fixed pointer instead, so compare the <em>numeral</em> at the pointer,
+            not the pointer's position.
+            <div style={{ marginTop: 8 }}>
+              The slider below each dial is the manual lever. Tap it to flip it.
             </div>
-            The silver tabs are the trippers: outer tab ON, inner tab OFF. Green is
-            the stretch where the switch is closed and the booster has power.
-            The grey pointer is the current time — on the real timer the dial turns
-            beneath a fixed pointer instead, so compare the <em>numeral</em> at the
-            pointer, not the pointer's position.
             <div style={{ marginTop: 8, color: C.timer }}>
-              Clock was correct on this timer as of the July 2026 survey. The left
-              Intermatic was 12 h off and its load is still unidentified.
+              Right timer is in off-season manual mode: dogs OUT, so the dial
+              actuates nothing and the lever alone decides. Reinstall the dogs when
+              the trees start dropping and it resumes the window above. Its clock
+              was correct at survey; the left timer's was 12 h off and its load is
+              still unidentified — see §6 of the handoff doc.
             </div>
           </div>
         </div>

@@ -104,17 +104,21 @@ const PROCEDURES = {
   daily: {
     label: "Normal day (hands off)",
     steps: [
-      "Overnight: IntelliFlo internal schedule runs filtration",
+      "Deck valves rest at SPLIT — every pump run turns over both pool and spa (design-intent default)",
+      "IntelliFlo internal schedule runs filtration ~23 h/day",
       "Midday (dirty season): booster timer runs the Polaris hose cleaner",
       "Robot cleaner + surface skimmer do their own thing",
       "Heater stays in STANDBY",
     ],
-    state: { deck: "pool", vwf: "pool", heaterMode: "standby", pump: "schedule" },
+    state: { deck: "split", vwf: "pool", heaterMode: "standby", pump: "schedule" },
   },
 };
 
 const DEFAULT = {
-  deck: "pool", vwf: "pool", heaterMode: "standby",
+  // Deck pair rests at SPLIT — the design-intent default (its position when
+  // Justin bought the house), so every pump run circulates both bodies. Heating
+  // procedures still isolate to POOL or SPA; this is only the resting state.
+  deck: "split", vwf: "pool", heaterMode: "standby",
   pump: "schedule", filterDirty: true, boosterOn: false,
   // CAPTURED from the IntelliFlo menu 7/20/26 (see §3 of the handoff). The pump
   // runs almost the whole day: Speed 1 @3250 RPM 7:00a–3:05p and Speed 2 @3000

@@ -7,14 +7,20 @@ export const FLOW_SWITCH = 40;
 // Every leg carrying water pushed by the pump, i.e. everything from the pump
 // discharge onward. Used both for the dirty-filter flow restriction and for
 // deciding which legs run hot, since the heater sits on this side.
+//
+// Return path is a SERIES loop, not a parallel one: heater → pad valve → either
+// the waterfall's own line, or the under-deck trunk back to the deck RETURN
+// valve, which feeds the pool floor returns / spa jets. Every non-waterfall
+// return therefore passes through the deck valve — it is in-line for all
+// main-pool circulation.
 export const PRESSURE_SIDE = [
-  "pumpFilter", "filterHeater", "heaterVWF",
-  "vwfPool", "vwfFalls", "spaRet", "boostTap", "boostCleaner",
+  "pumpFilter", "filterHeater", "heaterPad",
+  "vwfFalls", "padTrunk", "retPool", "retSpa", "boostTap", "boostCleaner",
 ];
 
 // Legs downstream of the heater outlet — these are the ones that actually
 // carry heated water when the burner is lit.
-export const DOWNSTREAM_OF_HEATER = ["heaterVWF", "vwfPool", "vwfFalls", "spaRet"];
+export const DOWNSTREAM_OF_HEATER = ["heaterPad", "vwfFalls", "padTrunk", "retPool", "retSpa"];
 
 // Legs downstream of the filter, where a dirty cartridge shows up as reduced
 // flow. Note this excludes pumpFilter: that leg is upstream of the restriction.
@@ -35,15 +41,19 @@ export function solve(s) {
     if (s.deck === "spa") active.add("spaSuc");
     else if (s.deck === "split") active.add("poolSuc").add("spaSuc");
     else active.add("poolSuc");
-    active.add("deckPump").add("pumpFilter").add("filterHeater").add("heaterVWF");
-    // Return side mirrors it. Spa mode returns to the spa; pool mode follows the
-    // pad valve (pool returns vs waterfall); split feeds BOTH the spa return and
-    // the pad-valve leg, so every run turns over both bodies — the deck pair's
-    // design-intent resting position.
-    const padReturn = s.vwf === "pool" ? "vwfPool" : "vwfFalls";
-    if (s.deck === "spa") active.add("spaRet");
-    else if (s.deck === "split") active.add("spaRet").add(padReturn);
-    else active.add(padReturn);
+    active.add("deckPump").add("pumpFilter").add("filterHeater").add("heaterPad");
+    // Return side. The pad valve either dumps the whole flow to the waterfall on
+    // its own line, or sends it back through the under-deck trunk to the deck
+    // RETURN valve, which then feeds the pool floor returns and/or spa jets. So
+    // in waterfall mode nothing returns to the bodies via the deck at all.
+    if (s.vwf === "waterfall") {
+      active.add("vwfFalls");
+    } else {
+      active.add("padTrunk");
+      if (s.deck === "spa") active.add("retSpa");
+      else if (s.deck === "split") active.add("retSpa").add("retPool");
+      else active.add("retPool");
+    }
   }
 
   let heaterStatus = "standby";
@@ -63,6 +73,12 @@ export function solve(s) {
   if (s.heaterMode === "spa" && s.deck === "pool") warnings.push("Heater in SPA mode but deck valves on POOL — pool water, spa thermostat.");
   if (s.heaterMode === "pool" && s.deck === "spa") warnings.push("Heater in POOL mode but deck valves on SPA — spa can badly overheat.");
   if (s.heaterMode !== "standby" && s.deck === "split") warnings.push("Deck valves at SPLIT — the heater warms BOTH pool and spa toward the current mode's setpoint. Fine for gentle whole-system heat, but slower than isolating one body; switch to POOL or SPA to heat one faster.");
+  // Spa drain-down: the pad valve is upstream of the deck return valve, so with
+  // it on WATERFALL the whole flow leaves over the falls and nothing returns to
+  // the deck. If the deck is drawing from the spa, the spa empties out the
+  // waterfall. No documented procedure produces this — only a wrong-order session.
+  if (pumpRunning && s.vwf === "waterfall" && (s.deck === "spa" || s.deck === "split"))
+    warnings.push("HAZARD: pad valve on WATERFALL while the deck valves draw from the SPA — spa water is pumped out over the waterfall with no return to the spa, draining it down. Put the pad valve back to POOL before running with the spa in suction.");
 
   if (s.boosterOn && !pumpRunning)
     warnings.push(`Booster running with main pump off — dead-heading, burns seals. Its timer window (${fmtWindow(s.booster)}) must sit inside an IntelliFlo run window.`);

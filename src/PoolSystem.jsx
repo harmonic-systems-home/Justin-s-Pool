@@ -39,30 +39,40 @@ const P = {
   // the viewBox (the card clips them).
   pool: { x: 105, y: 150 },
   spa: { x: 105, y: 360 },
-  vDeck: { x: 210, y: 255 },
-  pump: { x: 330, y: 210 },
-  filter: { x: 450, y: 210 },
-  heater: { x: 580, y: 210 },
-  vWF: { x: 700, y: 210 },
-  poolRet: { x: 860, y: 130 },
-  waterfall: { x: 860, y: 290 },
-  booster: { x: 450, y: 360 },
-  cleaner: { x: 640, y: 400 },
+  vDeck: { x: 220, y: 255 },
+  pump: { x: 350, y: 210 },
+  filter: { x: 470, y: 210 },
+  heater: { x: 595, y: 210 },
+  vWF: { x: 715, y: 210 },
+  // Waterfall now sits on the equipment row (the old top-right POOL RETURNS node
+  // is gone — pool returns are fed through the deck valve, not the pad valve).
+  waterfall: { x: 865, y: 210 },
+  booster: { x: 470, y: 365 },
+  cleaner: { x: 660, y: 402 },
   // Right Intermatic dial. Sits in the open pocket below the deck valve and
   // left of the booster it powers.
-  dial: { x: 310, y: 380 },
+  dial: { x: 320, y: 388 },
 };
 
+// Topology is a series loop (refined 7/20). Suction: pool/spa → deck SUCTION →
+// pump. Pressure: pump → filter → heater → pad valve. Return: pad valve →
+// waterfall (its own line) OR → under-deck trunk → deck RETURN → pool floor
+// returns / spa jets. The deck valve is therefore in-line for every
+// non-waterfall return — 100% of main-pool flow passes through it.
 const EDGES = [
-  { id: "poolSuc", d: `M ${P.pool.x + 45} ${P.pool.y} L ${P.vDeck.x - 30} ${P.pool.y} L ${P.vDeck.x} ${P.vDeck.y - 26}` },
-  { id: "spaSuc", d: `M ${P.spa.x + 45} ${P.spa.y} L ${P.vDeck.x - 30} ${P.spa.y} L ${P.vDeck.x} ${P.vDeck.y + 26}` },
+  { id: "poolSuc", d: `M ${P.pool.x + 45} ${P.pool.y} L ${P.vDeck.x - 34} ${P.pool.y} L ${P.vDeck.x} ${P.vDeck.y - 26}` },
+  { id: "spaSuc", d: `M ${P.spa.x + 45} ${P.spa.y} L ${P.vDeck.x - 34} ${P.spa.y} L ${P.vDeck.x} ${P.vDeck.y + 26}` },
   { id: "deckPump", d: `M ${P.vDeck.x + 20} ${P.vDeck.y - 12} L ${P.pump.x - 42} ${P.pump.y}` },
   { id: "pumpFilter", d: `M ${P.pump.x + 42} ${P.pump.y} L ${P.filter.x - 42} ${P.filter.y}` },
   { id: "filterHeater", d: `M ${P.filter.x + 42} ${P.filter.y} L ${P.heater.x - 42} ${P.heater.y}` },
-  { id: "heaterVWF", d: `M ${P.heater.x + 42} ${P.heater.y} L ${P.vWF.x - 26} ${P.vWF.y}` },
-  { id: "vwfPool", d: `M ${P.vWF.x + 18} ${P.vWF.y - 16} L ${P.poolRet.x - 45} ${P.poolRet.y}` },
-  { id: "vwfFalls", d: `M ${P.vWF.x + 18} ${P.vWF.y + 16} L ${P.waterfall.x - 58} ${P.waterfall.y}` },
-  { id: "spaRet", d: `M ${P.vDeck.x + 20} ${P.vDeck.y + 12} L ${P.spa.x + 70} ${P.spa.y - 34}` },
+  { id: "heaterPad", d: `M ${P.heater.x + 42} ${P.heater.y} L ${P.vWF.x - 26} ${P.vWF.y}` },
+  { id: "vwfFalls", d: `M ${P.vWF.x + 22} ${P.vWF.y} L ${P.waterfall.x - 58} ${P.waterfall.y}` },
+  // under-deck return trunk: pad valve down, back left along the pad, up into the
+  // deck return valve.
+  { id: "padTrunk", d: `M ${P.vWF.x} ${P.vWF.y + 26} L ${P.vWF.x} 292 L ${P.vDeck.x + 6} 292 L ${P.vDeck.x + 14} ${P.vDeck.y + 16}` },
+  // deck return valve → pool floor returns / spa jets
+  { id: "retPool", d: `M ${P.vDeck.x - 18} ${P.vDeck.y - 12} L ${P.pool.x + 58} ${P.pool.y + 32}` },
+  { id: "retSpa", d: `M ${P.vDeck.x - 18} ${P.vDeck.y + 12} L ${P.spa.x + 58} ${P.spa.y - 32}` },
   { id: "boostTap", d: `M ${P.filter.x + 20} ${P.filter.y + 26} L ${P.booster.x} ${P.booster.y - 28}` },
   { id: "boostCleaner", d: `M ${P.booster.x + 44} ${P.booster.y} L ${P.cleaner.x - 52} ${P.cleaner.y - 8}` },
 ];
@@ -356,8 +366,13 @@ export default function PoolSystemV3() {
             sub={r.heaterStatus === "firing" ? "FIRING" : r.heaterStatus === "lowflow" ? "no fire: low flow" : `mode: ${s.heaterMode}`}
             tone={r.heaterStatus === "firing" ? C.hot : r.heaterStatus === "lowflow" ? C.stall : C.faint}
             onClick={() => setS((p) => ({ ...p, heaterMode: p.heaterMode === "standby" ? "pool" : p.heaterMode === "pool" ? "spa" : "standby" }))} />
-          <Box x={P.poolRet.x} y={P.poolRet.y} label="POOL RETURNS" small w={104} />
           <Box x={P.waterfall.x} y={P.waterfall.y} label="WATERFALL" small w={104} />
+
+          {/* return-leg labels: pool floor returns and spa jets both hang off the
+              deck RETURN valve, downstream of the pad valve (series, not parallel) */}
+          <text x={P.pool.x + 40} y={P.pool.y + 48} textAnchor="middle" style={{ font: "500 8.5px 'IBM Plex Mono', monospace", fill: C.faint }}>floor returns</text>
+          <text x={P.spa.x + 40} y={P.spa.y - 40} textAnchor="middle" style={{ font: "500 8.5px 'IBM Plex Mono', monospace", fill: C.faint }}>spa jets</text>
+          <text x={(P.vWF.x + P.vDeck.x) / 2} y="304" textAnchor="middle" style={{ font: "500 8px 'IBM Plex Mono', monospace", fill: C.faint }}>under-deck return trunk</text>
           <Box x={P.booster.x} y={P.booster.y} label="POLARIS BOOST" sub={s.boosterOn ? "running" : "off (seasonal)"} small w={116} tone={s.boosterOn ? C.ink : C.faint}
             onClick={() => setS((p) => ({ ...p, boosterOn: !p.boosterOn }))} />
           <Box x={P.cleaner.x} y={P.cleaner.y} label="HOSE CLEANER" small w={110} tone={C.faint} />
@@ -397,7 +412,7 @@ export default function PoolSystemV3() {
             sub={s.deck === "pool" ? "parallel = POOL" : s.deck === "split" ? "intermediate = SPLIT" : "180° = SPA"}
             onTap={() => setS((p) => ({ ...p, deck: p.deck === "pool" ? "split" : p.deck === "split" ? "spa" : "pool" }))} />
           <ValveDot x={P.vWF.x} y={P.vWF.y} angle={s.vwf === "pool" ? 0 : 90} label="PAD VALVE"
-            sub={s.vwf === "pool" ? "up = POOL" : "WATERFALL"}
+            sub={s.vwf === "pool" ? "up = POOL (trunk)" : "WATERFALL"}
             onTap={() => setS((p) => ({ ...p, vwf: p.vwf === "pool" ? "waterfall" : "pool" }))} />
         </svg>
       </div>

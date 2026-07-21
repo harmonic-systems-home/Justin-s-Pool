@@ -18,6 +18,14 @@ const LABEL_W = 116;
 const RIGHT_PAD = 14;
 const AXIS_H = 22;
 
+// Shade a filtration band by RPM so relative flow reads at a glance without the
+// numbers: low idle speed → pale blue, full speed → deep blue. Range spans the
+// pump's usable band (~1350 low to ~3450 heat speed). Label ink flips to dark on
+// the pale end so it stays legible.
+const rpmT = (rpm) => Math.max(0, Math.min(1, (rpm - 1200) / (3450 - 1200)));
+const flowFill = (rpm) => `hsl(202 68% ${Math.round(66 - rpmT(rpm) * 34)}%)`;
+const flowInk = (rpm) => (rpmT(rpm) < 0.4 ? "#12303B" : "#fff");
+
 export default function Timeline({ C, pumpWindows, booster, rightTimer, heaterMode, nowMinutes, pumpBands, rate = DEFAULT_RATE }) {
   const width = 1000;
   const trackX = LABEL_W;
@@ -49,7 +57,7 @@ export default function Timeline({ C, pumpWindows, booster, rightTimer, heaterMo
         if (!segs.length) return [];
         const widest = segs.reduce((a, c) => (c[1] - c[0] > a[1] - a[0] ? c : a));
         const cost = bandCost(b, rate);
-        return segs.map((sp) => ({ sp, fill: C.flow, rpm: b.rpm, cost: sp === widest ? cost : null }));
+        return segs.map((sp) => ({ sp, fill: flowFill(b.rpm), rpm: b.rpm, cost: sp === widest ? cost : null }));
       })
     : pumpWindows.flatMap((w) => spans(w).map((sp) => ({ sp, fill: C.flow })));
   const pumpTotal = pumpBands ? pumpBands.reduce((t, b) => t + bandCost(b, rate), 0) : null;
@@ -141,7 +149,7 @@ export default function Timeline({ C, pumpWindows, booster, rightTimer, heaterMo
                       rx="4" fill={hatch ? "url(#tl-hatch)" : fill} stroke={hatch ? C.hot : "none"} strokeWidth="1" />
                     {label && (
                       <text x={x0 + w / 2} y={y + LANE_H / 2 + 3} textAnchor="middle"
-                        style={{ font: "700 9px 'IBM Plex Mono', monospace", fill: "#fff" }}>{label}</text>
+                        style={{ font: "700 9px 'IBM Plex Mono', monospace", fill: rpm != null ? flowInk(rpm) : "#fff" }}>{label}</text>
                     )}
                   </g>
                 );
@@ -168,7 +176,7 @@ export default function Timeline({ C, pumpWindows, booster, rightTimer, heaterMo
 
       <div style={{ font: "500 11px 'IBM Plex Mono', monospace", color: C.faint, marginTop: 6, lineHeight: 1.5 }}>
         {pumpBands
-          ? <span>filtration ~${pumpTotal.toFixed(2)}/day (est @ {(rate * 100).toFixed(1)}¢/kWh)</span>
+          ? <span>filtration ~${pumpTotal.toFixed(2)}/day (est @ {(rate * 100).toFixed(1)}¢/kWh) · deeper blue = higher RPM</span>
           : pumpWindows.map((w, i) => <span key={i}>filtration {fmtWindow(w)}{i < pumpWindows.length - 1 ? " · " : ""}</span>)}
         {dogsIn
           ? <> · booster {fmtWindow(booster)}</>

@@ -39,6 +39,10 @@ Booster branch: filter-output tap → Polaris PB4-60 → dedicated cleaner line 
 - **Deck valve pair** (two in-ground valves in deck sleeves near spa): handles **parallel to side of house = POOL mode**; rotated **180° = SPA mode**; **intermediate SPLIT position = default** — this was the valves' position when Justin bought the house (original design intent). At split, every pump run circulates BOTH bodies, giving the spa routine filtration/turnover so it doesn't stagnate between uses. Requirement: both valves at comparable splits so spa-in ≈ spa-out (verify spa level holds for a day after setting). One is suction select, one is return select (which-is-which not yet labeled).
 - **Pad valve**: selects pool returns vs waterfall on the heater output. Normal = POOL (handle up).
 - Waterfall is **downstream of the heater** — a return destination, not a heat path.
+- **Series return topology (refined 7/20):** heater out → PAD VALVE → {waterfall's own dedicated line} OR {under-deck return trunk → DECK RETURN VALVE → pool floor returns or spa jets}. The deck valves are IN-LINE for all main-pool circulation — 100% of daily flow passes through them; the spa legs are the switched branch. Spa procedures never touch the pad valve because it must already be on POOL for water to reach the deck valve.
+- **Pool floor returns:** two (deep end + shallow end), manifolded as the pool branch — believed to go quiet together in full SPA mode (verify: 10-min spa-level test + hand over each floor return).
+- **HAZARD:** pad valve on WATERFALL while suction is on SPA pumps the spa out through the waterfall → spa drain-down. No documented procedure produces this state; a wrong-order valve session could.
+- **v3 app topology bug (next iteration):** schematic draws the spa return parallel to the pad valve; reality is series (pad valve → deck valve). Redraw and add the spa+waterfall warning.
 - Series-loop consequence: dirty filter reduces GPM everywhere; heater flow switch (~40 GPM class) is first to complain.
 
 ## 3. Control architecture (the real story)

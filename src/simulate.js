@@ -31,11 +31,19 @@ export function solve(s) {
     gpm = s.pump === "manual3" ? 70 : 45;
     if (s.filterDirty) gpm = Math.round(gpm * 0.55);
     if (s.vwf === "waterfall") gpm += 12;
-    if (s.deck === "pool") active.add("poolSuc"); else active.add("spaSuc");
+    // Suction side: pool, spa, or (split) both bodies at once.
+    if (s.deck === "spa") active.add("spaSuc");
+    else if (s.deck === "split") active.add("poolSuc").add("spaSuc");
+    else active.add("poolSuc");
     active.add("deckPump").add("pumpFilter").add("filterHeater").add("heaterVWF");
+    // Return side mirrors it. Spa mode returns to the spa; pool mode follows the
+    // pad valve (pool returns vs waterfall); split feeds BOTH the spa return and
+    // the pad-valve leg, so every run turns over both bodies — the deck pair's
+    // design-intent resting position.
+    const padReturn = s.vwf === "pool" ? "vwfPool" : "vwfFalls";
     if (s.deck === "spa") active.add("spaRet");
-    else if (s.vwf === "pool") active.add("vwfPool");
-    else active.add("vwfFalls");
+    else if (s.deck === "split") active.add("spaRet").add(padReturn);
+    else active.add(padReturn);
   }
 
   let heaterStatus = "standby";
@@ -52,8 +60,9 @@ export function solve(s) {
   if (wantsHeat && s.pump === "schedule")
     warnings.push(`Heater left on ${s.heaterMode.toUpperCase()} — it WILL fire during the scheduled filter run (${s.pumpWindows.map(fmtWindow).join(", ")}), burning gas unattended. Return MODE to STANDBY after heating.`);
   if (wantsHeat && s.pump === "off") warnings.push("Heater mode set but pump is off — no flow, no fire.");
-  if (s.heaterMode === "spa" && s.deck !== "spa") warnings.push("Heater in SPA mode but deck valves on POOL — pool water, spa thermostat.");
+  if (s.heaterMode === "spa" && s.deck === "pool") warnings.push("Heater in SPA mode but deck valves on POOL — pool water, spa thermostat.");
   if (s.heaterMode === "pool" && s.deck === "spa") warnings.push("Heater in POOL mode but deck valves on SPA — spa can badly overheat.");
+  if (s.heaterMode !== "standby" && s.deck === "split") warnings.push("Deck valves at SPLIT — the heater warms BOTH pool and spa toward the current mode's setpoint. Fine for gentle whole-system heat, but slower than isolating one body; switch to POOL or SPA to heat one faster.");
 
   if (s.boosterOn && !pumpRunning)
     warnings.push(`Booster running with main pump off — dead-heading, burns seals. Its timer window (${fmtWindow(s.booster)}) must sit inside an IntelliFlo run window.`);

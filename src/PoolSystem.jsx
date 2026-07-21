@@ -3,6 +3,7 @@ import { load, save, isPersistent } from "./storage.js";
 import { fmtWindow } from "./schedule.js";
 import { solve, DOWNSTREAM_OF_FILTER } from "./simulate.js";
 import Timeline from "./Timeline.jsx";
+import ProposedSchedule from "./ProposedSchedule.jsx";
 import IntermaticDial, { DialGraphic, DialDefs } from "./IntermaticDial.jsx";
 
 // ─────────────────────────────────────────────────────────────
@@ -72,8 +73,8 @@ const PROCEDURES = {
       "In-ground deck valves → POOL (handles parallel to side of house)",
       "Hayward heater: MODE button until POOL is lit",
       "Pad valve to-pool/-waterfall → POOL (handle up — its normal spot)",
-      "IntelliFlo (white box): press ON, then Speed 3 (3500 RPM)",
-      "It self-stops after ~5 hours (Time Out)",
+      "IntelliFlo (white box): press ON, then Speed 3 (3450 RPM)",
+      "It self-stops after 3 h 10 min (Speed 3 Time Out — Justin's \"~5 hours\" was the older belief)",
       "WHEN DONE: heater MODE back to STANDBY — or it will fire again on the overnight filter run",
     ],
     state: { deck: "pool", vwf: "pool", heaterMode: "pool", pump: "manual3" },
@@ -94,8 +95,8 @@ const PROCEDURES = {
     steps: [
       "Both in-ground deck valves → rotate 180° to SPA",
       "Hayward heater: MODE button until SPA is lit",
-      "IntelliFlo: press ON, then Speed 3",
-      "Self-stops after ~5 hours",
+      "IntelliFlo: press ON, then Speed 3 (3450 RPM)",
+      "Self-stops after 3 h 10 min (Speed 3 Time Out)",
       "WHEN DONE: heater to STANDBY, deck valves back to POOL",
     ],
     state: { deck: "spa", vwf: "pool", heaterMode: "spa", pump: "manual3" },
@@ -115,18 +116,18 @@ const PROCEDURES = {
 const DEFAULT = {
   deck: "pool", vwf: "pool", heaterMode: "standby",
   pump: "schedule", filterDirty: true, boosterOn: false,
-  // NOT YET VERIFIED — these are Justin's description ("after midnight",
-  // "around noon to two"), not values read off the IntelliFlo menu or the
-  // Intermatic trippers. See §6 of the handoff doc.
+  // CAPTURED from the IntelliFlo menu 7/20/26 (see §3 of the handoff). The pump
+  // runs almost the whole day: Speed 1 @3250 RPM 7:00a–3:05p and Speed 2 @3000
+  // 3:00p–6:02p collapse into one daytime window; Speed 5 @1350 6:50p–6:55a is
+  // the overnight low leg. The only idle stretch is 6:02–6:50 PM.
   //
-  // Note what this default implies on the timeline: a single overnight
-  // filtration window leaves the midday booster running with no pump behind
-  // it. That's exactly the open question from the survey — whether the
-  // IntelliFlo also has a midday window nobody has read yet. Showing the
-  // conflict is the point; don't "fix" it by inventing a second window.
-  pumpWindows: [{ start: "00:30", end: "06:00" }],
+  // pumpWindows carries no RPM — it only encodes "flow present," which is what
+  // the heater trap and booster-orphan checks care about. The near-24 h coverage
+  // is the point: a heater left off STANDBY fires almost continuously, not just
+  // on an overnight run. Speeds/RPMs live in the "who controls what" card.
+  pumpWindows: [{ start: "07:00", end: "18:02" }, { start: "18:50", end: "06:55" }],
   booster: { start: "12:00", end: "14:00" },
-  schedVerified: false,
+  schedVerified: true,
 
   // Right Intermatic — Polaris booster. As of the July 2026 survey the trip
   // pins ("dogs") are OUT for the off-season, so the dial actuates nothing and
@@ -136,9 +137,11 @@ const DEFAULT = {
   // mean the booster runs continuously, which is why the sim warns about it.
   rightTimer: { dogsIn: false, lever: "off" },
 
-  // Left Intermatic — load still unidentified (§6). Lever observed ON, which
-  // matters: whatever it feeds is currently energized on its schedule, and its
-  // clock was 12 h off at survey time.
+  // Left Intermatic — CONFIRMED the pad's main power bus / de facto master
+  // disconnect: tripper-less, lever ON, runs continuously, feeds SunTouch and
+  // the believed pump/heater side (§3). Its clock is moot with no dogs in. Don't
+  // flip it off casually — it kills the filtration schedule, freeze protection,
+  // and heater. Exact load list still to verify.
   leftTimer: { lever: "on" },
 };
 
@@ -385,9 +388,9 @@ export default function PoolSystemV3() {
             {s.rightTimer.dogsIn ? `timer: ${fmtWindow(s.booster)}` : `manual — lever ${s.rightTimer.lever.toUpperCase()}`}
           </text>
 
-          <ValveDot x={P.vDeck.x} y={P.vDeck.y} angle={s.deck === "pool" ? 0 : 180} label="DECK PAIR"
-            sub={s.deck === "pool" ? "parallel = POOL" : "180° = SPA"}
-            onTap={() => setS((p) => ({ ...p, deck: p.deck === "pool" ? "spa" : "pool" }))} />
+          <ValveDot x={P.vDeck.x} y={P.vDeck.y} angle={s.deck === "pool" ? 0 : s.deck === "split" ? 90 : 180} label="DECK PAIR"
+            sub={s.deck === "pool" ? "parallel = POOL" : s.deck === "split" ? "intermediate = SPLIT" : "180° = SPA"}
+            onTap={() => setS((p) => ({ ...p, deck: p.deck === "pool" ? "split" : p.deck === "split" ? "spa" : "pool" }))} />
           <ValveDot x={P.vWF.x} y={P.vWF.y} angle={s.vwf === "pool" ? 0 : 90} label="PAD VALVE"
             sub={s.vwf === "pool" ? "up = POOL" : "WATERFALL"}
             onTap={() => setS((p) => ({ ...p, vwf: p.vwf === "pool" ? "waterfall" : "pool" }))} />
@@ -443,10 +446,10 @@ export default function PoolSystemV3() {
           </div>
 
           <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}>
-            <div style={{ font: "700 14px 'Barlow Semi Condensed'", color: C.ink }}>Left — load unknown</div>
+            <div style={{ font: "700 14px 'Barlow Semi Condensed'", color: C.ink }}>Left — main power bus</div>
             <IntermaticDial C={C} window={{ start: "", end: "" }} nowMinutes={nowMinutes} size={215}
               dogsIn={false} lever={s.leftTimer.lever}
-              caption={<>clock was 12 h off at survey · lever {s.leftTimer.lever.toUpperCase()}</>}
+              caption={<>master disconnect · tripper-less · lever {s.leftTimer.lever.toUpperCase()}</>}
               onToggleLever={() => setS((p) => ({
                 ...p, leftTimer: { ...p.leftTimer, lever: p.leftTimer.lever === "on" ? "off" : "on" },
               }))} />
@@ -464,9 +467,10 @@ export default function PoolSystemV3() {
             <div style={{ marginTop: 8, color: C.timer }}>
               Right timer is in off-season manual mode: dogs OUT, so the dial
               actuates nothing and the lever alone decides. Reinstall the dogs when
-              the trees start dropping and it resumes the window above. Its clock
-              was correct at survey; the left timer's was 12 h off and its load is
-              still unidentified — see §6 of the handoff doc.
+              the trees start dropping and it resumes the window above. The left
+              timer is confirmed tripper-less too — it's the pad's main power bus
+              (de facto master disconnect), so its clock is moot; don't flip it off
+              casually. See §3 of the handoff doc.
             </div>
           </div>
         </div>
@@ -499,13 +503,15 @@ export default function PoolSystemV3() {
       <div style={{ background: "#fff", border: `1px solid ${C.pipe}`, borderRadius: 12, padding: "12px 14px", margin: "4px 0 10px" }}>
         <div style={{ font: "700 15px 'Barlow Semi Condensed'", marginBottom: 6 }}>Who controls what</div>
         <div style={{ font: "500 12.5px 'IBM Plex Mono', monospace", lineHeight: 1.6 }}>
-          IntelliFlo — internal schedule for filtration ({s.pumpWindows.map(fmtWindow).join(", ")}); manual Speed 3 for heating, ~5 hr Time Out.<br />
-          Hayward heater — own thermostat, no clock: fires whenever mode ≠ STANDBY and water flows. Hence the standby discipline.<br />
-          Right Intermatic (clock correct) — Polaris booster, {fmtWindow(s.booster)}, dirty season only.<br />
-          Left Intermatic (was 12 h off) + SunTouch (AIR Error) — legacy; verify nothing real attached.<br />
-          Deck valve pair — manual pool/spa select · Pad valve — pool vs waterfall return.
+          IntelliFlo — internal schedule for filtration ({s.pumpWindows.map(fmtWindow).join(", ")}, ~23 h/day: Spd 1 3250 RPM daytime, Spd 5 1350 overnight); manual Speed 3 @3450 for heating, 3 h 10 min Time Out.<br />
+          Hayward heater — own thermostat, no clock: fires whenever mode ≠ STANDBY and water flows. With the pump running ~23 h/day, a heater left on POOL fires almost continuously — the standby discipline is the whole game.<br />
+          Right Intermatic — Polaris booster, manual seasonal switch (dogs out, lever OFF now); pool guy installs dogs in dirty season.<br />
+          Left Intermatic — the pad's main power bus / master disconnect (tripper-less, lever ON) · SunTouch (AIR Error) abandoned in place.<br />
+          Deck valve pair — manual pool/spa select (design-intent default is an intermediate SPLIT feeding both bodies) · Pad valve — pool vs waterfall return.
         </div>
       </div>
+
+      <ProposedSchedule C={C} nowMinutes={nowMinutes} />
 
       <textarea value={notes} onChange={(e) => saveNotes(e.target.value)}
         placeholder="Field notes — exact schedule times from IntelliFlo menu, tripper positions, wire colors…"

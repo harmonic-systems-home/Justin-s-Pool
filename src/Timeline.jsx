@@ -1,5 +1,6 @@
 import React from "react";
 import { DAY, spans, toMinutes, fmt, fmtWindow, uncoveredMinutes } from "./schedule.js";
+import { bandCost, DEFAULT_RATE } from "./energy.js";
 
 // 24-hour strip showing which clock runs what, and where they disagree.
 //
@@ -17,7 +18,7 @@ const LABEL_W = 116;
 const RIGHT_PAD = 14;
 const AXIS_H = 22;
 
-export default function Timeline({ C, pumpWindows, booster, rightTimer, heaterMode, nowMinutes }) {
+export default function Timeline({ C, pumpWindows, booster, rightTimer, heaterMode, nowMinutes, pumpBands, rate = DEFAULT_RATE }) {
   const width = 1000;
   const trackX = LABEL_W;
   const trackW = width - LABEL_W - RIGHT_PAD;
@@ -39,12 +40,26 @@ export default function Timeline({ C, pumpWindows, booster, rightTimer, heaterMo
       ? [{ sp: [0, DAY], fill: C.warn }]
       : [];
 
+  // Pump-lane bars. Given per-band metadata (RPM + effective hours) each band is
+  // labelled with its speed and, on its widest visible span, the estimated
+  // $/day; without it the lane falls back to plain flow bars from pumpWindows.
+  const pumpBars = pumpBands
+    ? pumpBands.flatMap((b) => {
+        const segs = spans(b);
+        if (!segs.length) return [];
+        const widest = segs.reduce((a, c) => (c[1] - c[0] > a[1] - a[0] ? c : a));
+        const cost = bandCost(b, rate);
+        return segs.map((sp) => ({ sp, fill: C.flow, rpm: b.rpm, cost: sp === widest ? cost : null }));
+      })
+    : pumpWindows.flatMap((w) => spans(w).map((sp) => ({ sp, fill: C.flow })));
+  const pumpTotal = pumpBands ? pumpBands.reduce((t, b) => t + bandCost(b, rate), 0) : null;
+
   const lanes = [
     {
       key: "pump",
       label: "INTELLIFLO",
       sub: "filtration",
-      bars: pumpWindows.flatMap((w) => spans(w).map((sp) => ({ sp, fill: C.flow }))),
+      bars: pumpBars,
     },
     {
       key: "booster",
@@ -111,10 +126,26 @@ export default function Timeline({ C, pumpWindows, booster, rightTimer, heaterMo
               <rect x={trackX} y={y} width={trackW} height={LANE_H} rx="5"
                 fill="#F4F7F7" stroke={C.pipe} strokeWidth="1" />
 
-              {lane.bars.map(({ sp, fill, hatch }, j) => (
-                <rect key={j} x={xOf(sp[0])} y={y + 3} width={Math.max(2, xOf(sp[1]) - xOf(sp[0]))} height={LANE_H - 6}
-                  rx="4" fill={hatch ? "url(#tl-hatch)" : fill} stroke={hatch ? C.hot : "none"} strokeWidth="1" />
-              ))}
+              {lane.bars.map(({ sp, fill, hatch, rpm, cost }, j) => {
+                const x0 = xOf(sp[0]);
+                const w = Math.max(2, xOf(sp[1]) - x0);
+                // Fit the richest label the band width allows: RPM + $/day, then
+                // RPM + $, then bare RPM, then nothing on a sliver.
+                const label = rpm == null ? null
+                  : cost != null && w > 150 ? `${rpm} RPM · $${cost.toFixed(2)}/day`
+                  : cost != null && w > 74 ? `${rpm} · $${cost.toFixed(2)}`
+                  : w > 40 ? `${rpm}` : null;
+                return (
+                  <g key={j}>
+                    <rect x={x0} y={y + 3} width={w} height={LANE_H - 6}
+                      rx="4" fill={hatch ? "url(#tl-hatch)" : fill} stroke={hatch ? C.hot : "none"} strokeWidth="1" />
+                    {label && (
+                      <text x={x0 + w / 2} y={y + LANE_H / 2 + 3} textAnchor="middle"
+                        style={{ font: "700 9px 'IBM Plex Mono', monospace", fill: "#fff" }}>{label}</text>
+                    )}
+                  </g>
+                );
+              })}
 
               {lane.empty && lane.bars.length === 0 && (
                 <text x={trackX + 10} y={y + 17}
@@ -136,7 +167,9 @@ export default function Timeline({ C, pumpWindows, booster, rightTimer, heaterMo
       </svg>
 
       <div style={{ font: "500 11px 'IBM Plex Mono', monospace", color: C.faint, marginTop: 6, lineHeight: 1.5 }}>
-        {pumpWindows.map((w, i) => <span key={i}>filtration {fmtWindow(w)}{i < pumpWindows.length - 1 ? " · " : ""}</span>)}
+        {pumpBands
+          ? <span>filtration ~${pumpTotal.toFixed(2)}/day (est @ {(rate * 100).toFixed(1)}¢/kWh)</span>
+          : pumpWindows.map((w, i) => <span key={i}>filtration {fmtWindow(w)}{i < pumpWindows.length - 1 ? " · " : ""}</span>)}
         {dogsIn
           ? <> · booster {fmtWindow(booster)}</>
           : <> · booster on manual lever ({leverOn ? "ON — continuous" : "OFF"}), no schedule</>}

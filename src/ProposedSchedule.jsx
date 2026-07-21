@@ -108,7 +108,8 @@ export default function ProposedSchedule({ C, nowMinutes }) {
               window (green), unlike the current-state orphan warnings above. */}
           <div style={head}>Proposed 24-hour schedule</div>
           <Timeline C={C} pumpWindows={PROP_WINDOWS} booster={PROP_BOOSTER}
-            rightTimer={{ dogsIn: true, lever: "on" }} heaterMode="standby" nowMinutes={nowMinutes} />
+            rightTimer={{ dogsIn: true, lever: "on" }} heaterMode="standby" nowMinutes={nowMinutes}
+            pumpBands={PROPOSED_SCHEDULE} rate={rate} />
 
           {/* Keypad reassignment */}
           <div style={head}>Keypad buttons = verbs</div>

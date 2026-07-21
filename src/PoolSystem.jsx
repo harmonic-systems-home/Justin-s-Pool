@@ -4,6 +4,7 @@ import { fmtWindow } from "./schedule.js";
 import { solve, DOWNSTREAM_OF_FILTER } from "./simulate.js";
 import Timeline from "./Timeline.jsx";
 import ProposedSchedule from "./ProposedSchedule.jsx";
+import { CURRENT_SCHEDULE } from "./energy.js";
 import IntermaticDial, { DialGraphic, DialDefs } from "./IntermaticDial.jsx";
 
 // ─────────────────────────────────────────────────────────────
@@ -402,7 +403,8 @@ export default function PoolSystemV3() {
       </div>
 
       <Timeline C={C} pumpWindows={s.pumpWindows} booster={s.booster}
-        rightTimer={s.rightTimer} heaterMode={s.heaterMode} nowMinutes={nowMinutes} />
+        rightTimer={s.rightTimer} heaterMode={s.heaterMode} nowMinutes={nowMinutes}
+        pumpBands={CURRENT_SCHEDULE} />
 
       {/* editable schedule windows — still placeholders until §6 is filled in */}
       <div style={{ background: "#fff", border: `1px solid ${C.pipe}`, borderRadius: 12, padding: "12px 14px", marginBottom: 10 }}>

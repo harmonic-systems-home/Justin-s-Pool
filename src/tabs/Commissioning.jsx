@@ -43,6 +43,30 @@ function Recorder({ config, update, id, unit, placeholder }) {
   );
 }
 
+// Remediation tasks are fixes, not measurements: a done checkbox + date + notes,
+// persisted to config.remediation[id].
+function RemediationRow({ config, update, id, title, body }) {
+  const rec = config.remediation[id] || {};
+  const set = (patch) => update((d) => { d.remediation[id] = { ...(d.remediation[id] || {}), ...patch }; });
+  return (
+    <div style={{ borderBottom: `1px solid ${C.pad}`, padding: "8px 0" }}>
+      <label style={{ display: "flex", gap: 8, alignItems: "baseline", cursor: "pointer" }}>
+        <input type="checkbox" checked={!!rec.done} onChange={(e) => set({ done: e.target.checked, date: e.target.checked ? (rec.date || today()) : rec.date })} />
+        <span style={{ font: mono(12, 600), color: rec.done ? C.ok : C.ink }}>{title}</span>
+        {rec.done && <Badge prov={prov("measured", rec.date || null, "done")} />}
+      </label>
+      <div style={{ font: mono(11), color: C.faint, lineHeight: 1.55, margin: "4px 0 6px 24px" }}>{body}</div>
+      <div style={{ marginLeft: 24 }}>
+        <TextField value={rec.notes || ""} onChange={(v) => set({ notes: v })} placeholder="notes / photo ref" />
+      </div>
+    </div>
+  );
+}
+
+const Divider = ({ children }) => (
+  <div style={{ font: cond(16), color: C.ink, margin: "18px 0 8px", borderBottom: `2px solid ${C.pipe}`, paddingBottom: 4 }}>{children}</div>
+);
+
 export default function Commissioning({ config, update }) {
   const badgeFor = (p) => <Badge prov={p} />;
 
@@ -122,7 +146,7 @@ export default function Commissioning({ config, update }) {
       </TestCard>
 
       <TestCard n={12} title="Volume estimation (record the derivation)" badge={badgeFor(config.volumes.pool.prov)}
-        steps={["Pool: max length × max width × avg depth (bounding box), × freeform plan-area factor 0.78–0.85 (chose 0.80), × 7.48 gal/ft³.", "Spa: diameter + seat depth TBD.", "Refine: trace plan area from satellite at known scale, or clock the meter on a measured drawdown refill (1\" pool-wide ≈ area ft² × 0.62 gal)."]}>
+        steps={["Pool: max length × max width × avg depth (bounding box), × freeform plan-area factor 0.78–0.85 (chose 0.80), × 7.48 gal/ft³.", "Spa: diameter + seat depth TBD.", "1-INCH REFILL TEST (flips to MEASURED): tape the water line on a tile; let it fall 1\" (evaporation or brief pump-down); shut off all other household water; read the house meter; refill exactly to the mark; read again. Gallons added ÷ 0.62 = true surface area (ft²); area × avg depth = volume. This measures AREA — avg depth stays a soft input, so quote volume as measured-area × estimated-depth. Alt: trace plan area from the satellite photo at known scale."]}>
         <div style={{ display: "flex", gap: 12, flexWrap: "wrap", alignItems: "center", font: mono(11.5), color: C.faint }}>
           <label>L <NumField value={config.volumes.pool.length} step="1" width={60} onChange={(v) => update((d) => { d.volumes.pool.length = v; })} /> ft</label>
           <label>W <NumField value={config.volumes.pool.width} step="1" width={60} onChange={(v) => update((d) => { d.volumes.pool.width = v; })} /> ft</label>
@@ -134,6 +158,61 @@ export default function Commissioning({ config, update }) {
             style={{ font: mono(11, 600), padding: "5px 9px", borderRadius: 7, border: `1.5px solid ${C.ok}`, background: "#fff", color: C.ok, cursor: "pointer" }}>mark measured</button>
         </div>
       </TestCard>
+
+      <TestCard n={13} title="Fill-line trace" badge={badgeFor(prov("est"))}
+        steps={["The white PVC riser with the brass valve by the fence (near the heater) is believed a dedicated domestic fill line.", "Open it briefly; find where water emerges at the pool; label the valve.", "The rusty galvanized bib at the house wall is an ordinary hose bib, not this."]}>
+        <Recorder config={config} update={update} id="fillLine" placeholder="where water emerges / confirmed fill line?" />
+      </TestCard>
+
+      <Divider>Lighting reverse-engineering (L-series) — one metering session, helper + multimeter</Divider>
+
+      <TestCard n="L0" title="Map the pad subpanel" badge={badgeFor(prov("pending"))}
+        steps={["Square D HOM612L100RB (recently installed; fed by the main panel's 40A 'POOL EQUIP' Challenger pair).", "30A 2-pole = believed 240 V feed to the timer box → pump chain; 15A 1-pole = the pad's ONLY 120 V circuit — prime suspect for SunTouch supply and/or lights.", "Flip each; observe what dies; label. Slots 4–6 empty = future capacity (IntelliConnect, new light transformer).", "Note for Justin: the main-panel Challenger breakers have a known failure history — someday-replace, independent of this project."]}>
+        <Recorder config={config} update={update} id="L0" placeholder="30A → … · 15A → … · labels applied?" />
+      </TestCard>
+
+      <TestCard n="L1" title="Prove/disprove main-panel #8 'lights'" badge={badgeFor(prov("pending"))}
+        steps={["Flip main-panel breaker #8; check house lights vs anything poolside."]}>
+        <Recorder config={config} update={update} id="L1" placeholder="#8 controls …" />
+      </TestCard>
+
+      <TestCard n="L2" title="Meter the 3 riser J-boxes" badge={badgeFor(prov("pending"))}
+        steps={["Per box: meter black→white and orange→white while a helper cycles candidates one at a time: SunTouch AUX 1/2/3 (= test 9), subpanel 15A, main #8.", "Build the circuit → box → fixture map. Note which conductors are line voltage vs low voltage."]}>
+        <Recorder config={config} update={update} id="L2" placeholder="box1=… box2=… box3=… (circuit → fixture)" />
+      </TestCard>
+
+      <TestCard n="L3" title="GFCI audit (before energizing ANY niche light)" badge={badgeFor(prov("pending"))}
+        steps={["Find the GFCI protecting any 120 V underwater circuit — GFCI breaker or feed-through receptacle.", "If a 120 V niche light has NO GFCI: DO NOT energize. Add a GFCI breaker first (the subpanel has room)."]}>
+        <Recorder config={config} update={update} id="L3" placeholder="GFCI found? where? or none → add breaker" />
+      </TestCard>
+
+      <TestCard n="L4" title="Find the 12 V transformer (or confirm it's gone)" badge={badgeFor(prov("pending"))}
+        steps={["Look: eaves, boxes near the waterfall, behind/inside the SunTouch enclosure.", "While in the SunTouch, inventory the wires — identify any landing on AUX relays and heading toward the risers."]}>
+        <Recorder config={config} update={update} id="L4" placeholder="transformer location / gone · SunTouch AUX wires" />
+      </TestCard>
+
+      <TestCard n="L5" title="Waterfall circuit continuity" badge={badgeFor(prov("pending"))}
+        steps={["Locate the pad end of the old round CL115 cable; meter continuity/resistance toward the waterfall fixtures.", "All four CL115s are flooded → plan: new 12 V LED fountain lights + new outdoor smart transformer (~60 W covers 4× LED), direct-burial LV cable.", "Record whether the old cable is reusable as the run."]}>
+        <Recorder config={config} update={update} id="L5" placeholder="continuity? old cable reusable?" />
+      </TestCard>
+
+      <TestCard n="L6" title="Niche fixture service (pool + spa)" badge={badgeFor(prov("pending"))}
+        steps={["Breaker OFF + GFCI verified → one screw on the trim ring, tilt the fixture out, rest it on the deck on its coiled cord.", "Water inside = replace the fixture (don't relamp); dry = relamp (match lamp type/voltage to the label), NEW lens gasket regardless, reseat.", "Never energize a 120 V niche lamp out of water for more than a moment (they're water-cooled). Dry + healthy circuit → color-LED retrofit lamp option."]}>
+        <Recorder config={config} update={update} id="L6" placeholder="pool niche: wet/dry · spa niche: wet/dry · action" />
+      </TestCard>
+
+      <Divider>Remediation (fixes, not tests — check off with date + photo ref)</Divider>
+
+      <div style={{ background: "#fff", border: `1px solid ${C.pipe}`, borderRadius: 12, padding: "6px 14px 12px" }}>
+        <RemediationRow config={config} update={update} id="R1" title="R1 · Cap the orphan solar stub"
+          body="Glued PVC cap (~$2, primer + cement). Defuses the open-pipe dump hazard on the old solar diverter — until capped, any rotation of that valve (bumped override lever, stray SunTouch valve command) discharges pool water at 45+ GPM, unattended. Capped, the worst case is a harmless dead-head." />
+        <RemediationRow config={config} update={update} id="R2" title="R2 · Verify + lock the solar diverter in bypass"
+          body="Confirm current position = bypass (it must be — pump→heater flows today), then disable the actuator: unplug its cable at the SunTouch end and/or use the actuator's manual toggle. Photograph the final state." />
+        <RemediationRow config={config} update={update} id="R3" title="R3 · Paint-pen the pad"
+          body="Label pipes at confusion points ('to waterfall', 'spa return', 'cleaner line'); mark the calibrated deck-valve split positions on the collars (after tests 5/6); write 'POOL VALVES FIRST' at the pad valve." />
+        <RemediationRow config={config} update={update} id="R4" title="R4 · Reconnect the SunTouch air sensor"
+          body="Clears the flashing AIR Error. Meter the salvaged probe (~10 kΩ across the leads at ~77 °F = good); splice with gel-filled connectors, or fit a new Pentair 10 kΩ sensor (~$15–25) — two-wire, non-polarized, on the AIR terminals behind the deadfront (POWER OFF first); mount in shade. Set the SunTouch clock while in there. Turns the abandoned controller into a quiet, credible fallback + a working pad thermometer." />
+      </div>
     </div>
   );
 }

@@ -78,6 +78,12 @@ Four clocks exist; only some matter:
 
 ## 6. Remaining unknowns (field checklist)
 
+**Remediation tasks (fixes, not tests — do these):**
+- [ ] **Cap the orphan solar stub** on the old solar diverter valve (glued PVC cap + primer/cement, ~$2). Until capped, anything that rotates that valve — bumped manual override lever or a confused SunTouch valve command — dumps pressurized pool water out the open pipe at 45+ GPM, unattended. Capping makes the worst case a harmless dead-head.
+- [ ] **Verify + lock the solar diverter position**: confirm current position = bypass (it must be, since pump→heater flows today), then disable the actuator — unplug its cable at the SunTouch end and/or use the actuator's manual toggle. Photograph final state.
+- [ ] **Paint-pen the pad**: label pipes at confusion points ("to waterfall", "spa return", "cleaner line"), mark calibrated deck-valve split positions (after commissioning test 5/6), and write "POOL VALVES FIRST" at the pad valve.
+- [ ] **Reconnect the SunTouch air sensor** — clears the flashing AIR Error. The salvaged cut probe (in parts pile) may still work: meter it, ~10 kΩ across the leads at ~77 °F = good thermistor. If good, splice to the cut cable with waterproof (gel-filled) connectors; if not, any Pentair 10 kΩ air/water sensor (~$15–25) replaces it — two-wire, no polarity, lands on the AIR terminals behind the deadfront (POWER OFF first). Mount the probe in shade near the enclosure. While in there: set the SunTouch clock. Result: the abandoned controller becomes a quiet, sane-looking fallback instead of a flashing mystery — and a working outdoor thermometer at the pad as a bonus.
+
 - [x] IntelliFlo menu: schedule captured 7/20/26 (see control table). Still to read: **Watts at each speed** (for cost model) and freeze-protection setting.
 - [x] **Chlorination: ANSWERED 7/20/26** — trichlor floating dispenser + pool guy's weekly dosing; no inline chlorinator or salt cell at pad (confirmed by inspection). Sanitation is therefore independent of pump run-hours → **no chlorine constraint on the TOU schedule redesign**. Awareness: trichlor floaters accumulate cyanuric acid over years (standard serviced-pool issue; pool guy's domain — occasional partial drain/refill).
 - [ ] **Schedule cost review (biggest $ lever):** 11 h/day at 3000–3250 RPM ≈ 18–22 kWh/day ≈ $80–100/mo SMUD. A long-low profile (more hours at 1350–1800) could cut this 3–4×. Ask pool guy about skimming needs under the trees before changing (chlorine constraint now cleared). Evening 48-min gap (6:02–6:50p) — intentional or oversight?
@@ -94,7 +100,7 @@ Four clocks exist; only some matter:
   - **Dye test (return side, optional):** food coloring in spa; half-fade time τ ≈ 800/(f×Q) cross-checks return share.
   - **Set + mark:** adjust both handles until suction-f ≈ return-f (spa level stable over a day), then PAINT-PEN the calibrated positions on the deck collars. Ongoing monitor is free: a moving spa level = the split has drifted.
   - Side effect: this test also IDENTIFIES which deck valve is suction vs return (rotate one to full POOL: spa level DROPS → you moved the return valve; RISES → you moved the suction valve). Label both while marking.
-- [ ] Light circuits: which timer/switch controls each of the three J-boxes.
+- [ ] **Lighting reverse-engineering — full L-series plan in TABBED-REDESIGN-SPEC (Commissioning):** map pad subpanel (Square D HOM612L100RB: 30A 2-pole = pump-chain feed?, 15A 1-pole = only 120V circuit, suspect for SunTouch/lights; slots 4–6 empty = future capacity), test main-panel #8 "lights", meter the 3 riser J-boxes against SunTouch AUX / subpanel 15A / main #8, GFCI audit before energizing any niche light, find-or-confirm-gone the 12V transformer, waterfall cable continuity (all 4 CL115s flooded → LED + new transformer plan), niche fixture service w/ gasket replacement. Note: main-panel "POOL EQUIP" pair are Challenger breakers (known failure history — someday-replace, flag to Justin).
 - [ ] Waterfall: any dedicated pump, or purely a return leg? (Assumed return leg.)
 
 ## 7. Future option (documented, not yet decided)

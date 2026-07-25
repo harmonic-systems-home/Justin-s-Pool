@@ -70,11 +70,21 @@ export default function PoolDesign({ config }) {
         </div>
       </Card>
 
-      <Card title="Lighting (TBD)">
-        <div style={{ font: mono(11.5), color: C.faint, lineHeight: 1.7 }}>
-          Niche lights (pool + spa) — no known switch; SunTouch AUX hypothesis (test on Commissioning).<br />
-          Waterfall CL115s — 12 V, flooded; transformer location/condition unknown.<br />
-          Cut lamp cord — removed 7/2026.
+      <Card title="Lighting — reverse-engineering underway (L-series)">
+        <div style={{ font: mono(11.5), color: C.ink, lineHeight: 1.7 }}>
+          Pad subpanel: Square D HOM612L100RB (fed by the main panel's 40A "POOL EQUIP" Challenger pair). 30A 2-pole → pump chain; 15A 1-pole = the pad's only 120 V circuit (SunTouch/lights suspect); slots 4–6 empty = future capacity.<br />
+          Niche lights (pool + spa) — no known switch; SunTouch AUX hypothesis. <span style={{ color: C.warn }}>GFCI audit is non-negotiable before energizing any 120 V niche light.</span><br />
+          Waterfall CL115s — all four flooded → plan: 12 V LED fountain lights + new outdoor smart transformer (~60 W), direct-burial LV cable; reuse old cable run if continuity holds.<br />
+          Three riser J-boxes metered against SunTouch AUX / subpanel 15A / main #8 to build the circuit→box→fixture map. Cut lamp cord removed 7/2026.<br />
+          <span style={{ color: C.faint }}>Full L0–L6 procedure + results on the Commissioning tab.</span>
+        </div>
+      </Card>
+
+      <Card title="Drain & fill">
+        <div style={{ font: mono(11.5), color: C.ink, lineHeight: 1.7 }}>
+          Cartridge-filter system → <b>no backwash/waste port</b> at the pad. Draining needs a submersible utility pump in the deep end, discharging to a <b>sanitary sewer cleanout</b> (CA rule: pool water to sewer, never storm drain — Sacramento districts enforce). The main pump can't pump the pool down (loses prime below the skimmer).<br />
+          <span style={{ color: C.warn }}>Never fully drain casually</span> — an empty gunite shell can float/crack from groundwater (hydrostatic pop-out); full drains are deliberate, pro-supervised events. Realistic use: partial drain-and-refill (1–2 ft) for CYA management (pool-guy territory).<br />
+          Filling: hose over the coping or the dedicated fill line (Commissioning test 13); watched — no autofill installed.
         </div>
       </Card>
     </div>

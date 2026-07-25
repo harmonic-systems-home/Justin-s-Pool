@@ -24,6 +24,7 @@ The current page's operating core: live schematic (tap valves/equipment), curren
 - Filter (suction-side cartridge): cleaning indicator (pressure gauge delta from clean baseline), last-cleaned date field
 - Floating chlorine dispenser: tablet type, refill cadence, CYA-accumulation awareness note
 - Pool guy: visit schedule, known activities, questions queue (running list feeds from other tabs)
+- **Drain & fill:** cartridge-filter system → NO backwash/waste port on the pad; draining requires a submersible utility pump in the deep end, discharging to a **sanitary sewer cleanout** (CA rule: pool water to sewer, never storm drain/gutter — Sacramento-area districts enforce). Main pump cannot pump the pool down (loses prime below skimmer). **Never fully drain casually** — empty gunite shells can float/crack from groundwater (hydrostatic pop-out); full drains are deliberate, pro-supervised events. Realistic use: partial drain-and-refill (1–2 ft) for CYA management — pool-guy territory. Filling: hose over coping or the dedicated fill line (see Commissioning test 13); watched, no autofill installed.
 
 ### 3. Pool Design
 - Component inventory (from handoff §1): pump, filter, heater, booster, cleaners, timers, SunTouch, lights
@@ -58,7 +59,24 @@ Each test = procedure card + recordable result fields (value, date, who) that wr
     - Spa inputs: diameter + seat depth TBD (measure) → currently assumed **~800 gal** — EST
     - Total at split ≈ 16,300 gal
     - Editable fields for all inputs + factor so revised measurements recompute downstream (turnover, heat-rise, split-f targets)
-    - Refinement paths (optional, flips badge to MEASURED): trace plan area from the satellite photo at known scale; or clock the water meter during a level-restoring refill of a measured drawdown (1" pool-wide ≈ area ft² × 0.62 gal)
+    - Refinement path (flips badge to MEASURED) — **the 1-inch refill test:** mark the water line on a tile with painter's tape; let the level fall 1" (evaporation over a few summer days, or briefly run the submersible pump); shut off all other household water; read the house water meter; refill via hose/fill line exactly to the mark; read the meter again. **Gallons added ÷ 0.62 = true surface area (ft²)**; area × 1" ≈ gallons-per-inch (the constant every other level-based test uses); area × avg depth = volume. Note: this measures AREA precisely — avg depth (Justin's 5') remains the soft input, so quote volume as measured-area × estimated-depth. Alternative: trace plan area from the satellite photo at known scale.
+13. **Fill-line trace** — the white PVC riser w/ brass valve by the fence (near heater) is believed a dedicated domestic fill line. Open briefly, find where water emerges at the pool; label the valve. (The rusty galvanized bib at the house wall = ordinary hose bib.)
+
+**Lighting reverse-engineering (L-series — one metering session, helper + multimeter):**
+- L0. **Map the pad subpanel** (Square D HOM612L100RB, recently installed; fed by main panel's 40A "POOL EQUIP" Challenger pair): 30A 2-pole = believed 240V feed to timer box → pump chain; 15A 1-pole = the pad's ONLY 120V circuit — prime suspect for SunTouch supply and/or lights. Flip each, observe what dies, label. Positions 4–6 empty = future capacity (IntelliConnect, new light transformer). Side note for Justin: Challenger breakers in the main panel have a known failure history — someday-replace item, independent of this project.
+- L1. **Prove/disprove main-panel #8 "lights"**: flip it, check house lights vs anything poolside.
+- L2. **Meter the 3 riser J-boxes** (black→white, orange→white in the opened box; repeat per box) while helper cycles candidates one at a time: SunTouch AUX 1/2/3 (= test 9), subpanel 15A, main #8. Build the circuit→box→fixture map. Note which conductors are line voltage vs low voltage.
+- L3. **GFCI audit** (NON-NEGOTIABLE before any niche light is used): find the GFCI device protecting any 120V underwater circuit — GFCI breaker or feed-through receptacle. If 120V niche lights have NO GFCI: do not energize; add a GFCI breaker first (subpanel has room).
+- L4. **Find the 12V transformer or confirm it's gone**: eaves, boxes near waterfall, behind/inside SunTouch enclosure. Inventory the wires inside the SunTouch while there — identify any that land on AUX relays and head toward the risers.
+- L5. **Waterfall circuit continuity**: locate the pad end of the old round CL115 cable; meter continuity/resistance toward the waterfall fixtures. All four fixtures are flooded → plan = new 12V LED fountain lights + new outdoor smart transformer (~60W covers 4× LED), direct-burial LV cable. Record whether the old cable is reusable as the run.
+- L6. **Niche fixture service (pool + spa)**: breaker OFF + GFCI verified → one screw on trim ring, tilt fixture out, lift onto deck on its coiled cord. Inspect: water inside = replace fixture (don't relamp); dry = relamp (verify lamp type/voltage against fixture label), NEW lens gasket regardless, reseat. Never energize a 120V niche lamp out of water for more than a moment (water-cooled). Modern option: color LED retrofit lamps if fixtures prove dry and circuits healthy.
+- Results recorded per L-step (measured voltages, circuit map, transformer status, fixture condition) — feeds the Pool Design tab's lighting section from TBD → documented.
+
+**Remediation tasks (same tab, separate section — fixes rather than tests, each with done-date + photo field):**
+- R1. **Cap the orphan solar stub** (glued PVC cap): defuses the open-pipe dump hazard on the old solar diverter — until capped, any rotation of that valve (bumped override lever, stray SunTouch valve command) discharges pool water at 45+ GPM unattended.
+- R2. **Verify + lock solar diverter in bypass**; disable actuator (unplug at SunTouch and/or actuator toggle). Photo of final state.
+- R3. **Paint-pen the pad**: pipe labels at confusion points, calibrated split marks on deck collars (after tests 5/6), "POOL VALVES FIRST" at the pad valve.
+- R4. **Reconnect SunTouch air sensor** (clears flashing AIR Error): meter the salvaged probe (~10 kΩ @ ~77 °F = good) and splice with gel-filled connectors, or fit a new Pentair 10 kΩ sensor (~$15–25); two-wire non-polarized on AIR terminals behind deadfront, POWER OFF first; mount in shade. Set the SunTouch clock while in there. Turns the abandoned controller into a quiet, credible fallback + working pad thermometer.
 
 ### 7. History
 - Original construction era: solar rooftop heater, 4-turnover schedule rationale, CL115 waterfall lights (2002)

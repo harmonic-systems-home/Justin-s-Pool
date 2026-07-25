@@ -77,6 +77,8 @@ export const DEFAULT_CONFIG = {
 
   // Commissioning results: testId -> { value, date, who }. These flip badges.
   commissioning: {},
+  // Remediation tasks (fixes, not tests): taskId -> { done, date, notes }.
+  remediation: {},
 
   history: [
     { date: "2002", what: "Waterfall CL115 12 V submersible lights installed (dated fixture).", who: "builder" },

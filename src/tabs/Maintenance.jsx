@@ -40,6 +40,12 @@ export default function Maintenance({ config, update }) {
         <div style={{ font: mono(10.5), color: C.faint }}>Trichlor is independent of pump run-hours, so the schedule redesign has no chlorine constraint. CYA accumulates over years → occasional partial drain/refill.</div>
       </Card>
 
+      <Card title="Drain & fill (partial only)">
+        <div style={{ font: mono(11.5), color: C.ink, lineHeight: 1.6 }}>
+          For CYA management: <b>partial</b> drain-and-refill, 1–2 ft, not a full drain. No backwash port (cartridge system) — a submersible pump empties to a <b>sewer cleanout</b> (never the storm drain). <span style={{ color: C.warn }}>Never fully drain casually</span> — empty shells can float/crack. Refill via hose or the fill line, watched (no autofill). Full details on Pool Design.
+        </div>
+      </Card>
+
       <Card title="Pool service">
         {note("Pool guy — visit schedule, known activities, questions queue", "poolGuy", "visit cadence · what they do · open questions")}
       </Card>

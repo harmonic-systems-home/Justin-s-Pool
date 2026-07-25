@@ -175,7 +175,7 @@ export default function DailyOperation({ config, update, now }) {
   const pumpSub = sim.pump === "manual3" ? "manual spd 3" : sim.pump === "schedule-running" ? "sched: running" : sim.pump === "schedule" ? "sched: idle" : "off";
 
   const Btn = ({ on, children, onClick }) => (
-    <button onClick={onClick} style={{ font: mono(12.5, 600), padding: "9px 12px", borderRadius: 10, border: `2px solid ${on ? C.ink : C.pipe}`, background: on ? C.ink : "#fff", color: on ? "#fff" : C.faint, cursor: "pointer" }}>{children}</button>
+    <button onClick={onClick} style={{ font: mono(11.5, 600), padding: "7px 10px", borderRadius: 9, border: `2px solid ${on ? C.ink : C.pipe}`, background: on ? C.ink : "rgba(255,255,255,0.92)", color: on ? "#fff" : C.faint, cursor: "pointer", backdropFilter: "blur(1px)" }}>{children}</button>
   );
   const toggleLever = () => update((d) => { d.booster.lever = d.booster.lever === "on" ? "off" : "on"; });
 
@@ -200,9 +200,14 @@ export default function DailyOperation({ config, update, now }) {
         </span>
       </div>
 
-      <div style={{ background: "#fff", borderRadius: 14, border: `1px solid ${C.pipe}`, overflow: "hidden" }}>
-        <svg viewBox="0 0 1000 500" style={{ width: "100%", display: "block" }}>
-          <DialDefs />
+      <div style={{ background: "#fff", borderRadius: 14, border: `1px solid ${C.pipe}`, overflow: "hidden", display: "flex", flexWrap: "wrap" }}>
+        <div style={{ position: "relative", flex: "1 1 480px", minWidth: 0 }}>
+          {/* procedure buttons live in the schematic's top whitespace */}
+          <div style={{ position: "absolute", top: 10, left: 12, right: 12, zIndex: 2, display: "flex", gap: 7, flexWrap: "wrap" }}>
+            {Object.entries(PROCEDURES).map(([k, p]) => <Btn key={k} on={proc === k} onClick={() => applyProc(k)}>{p.label}</Btn>)}
+          </div>
+          <svg viewBox="0 0 1000 500" style={{ width: "100%", display: "block" }}>
+            <DialDefs />
           {EDGES.map((e) => <path key={e.id} d={e.d} fill="none" stroke={C.pipe} strokeWidth="9" strokeLinejoin="round" />)}
           {EDGES.map((e) => {
             const col = stroke(e.id);
@@ -249,23 +254,26 @@ export default function DailyOperation({ config, update, now }) {
           <ValveDot x={P.vWF.x} y={P.vWF.y} angle={sim.vwf === "pool" ? 0 : 90} label="PAD VALVE"
             sub={sim.vwf === "pool" ? "up = POOL (trunk)" : "WATERFALL"}
             onTap={() => setS((p) => ({ vwf: p.vwf === "pool" ? "waterfall" : "pool" }))} />
-        </svg>
+          </svg>
+        </div>
+
+        {/* step-by-step, inset on the right, appears on button click */}
+        {proc && (
+          <div style={{ flex: "1 1 260px", minWidth: 240, maxWidth: 380, borderLeft: `1px solid ${C.pipe}`, padding: "12px 14px", background: "#FAFCFB" }}>
+            <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 8, marginBottom: 6 }}>
+              <div style={{ font: cond(14) }}>{PROCEDURES[proc].label} — steps</div>
+              <button onClick={() => setProc(null)} title="close"
+                style={{ font: mono(12, 600), lineHeight: 1, padding: "3px 8px", borderRadius: 7, border: `1.5px solid ${C.pipe}`, background: "#fff", color: C.faint, cursor: "pointer" }}>×</button>
+            </div>
+            <ol style={{ margin: 0, paddingLeft: 18, font: mono(12), lineHeight: 1.5 }}>
+              {PROCEDURES[proc].steps.map((st, i) => <li key={i} style={{ marginBottom: 5 }}>{st}</li>)}
+            </ol>
+          </div>
+        )}
       </div>
 
       <Timeline C={C} pumpWindows={active} pumpBands={active} booster={{ start: bt.start, end: bt.end }}
         rightTimer={{ dogsIn: bt.dogsIn, lever: bt.lever }} heaterMode={sim.heaterMode} nowMinutes={now} rates={rates} pump={config.pump} />
-
-      {/* procedures */}
-      <div style={{ display: "flex", gap: 8, flexWrap: "wrap", margin: "2px 0 10px" }}>
-        {Object.entries(PROCEDURES).map(([k, p]) => <Btn key={k} on={proc === k} onClick={() => applyProc(k)}>{p.label}</Btn>)}
-      </div>
-      {proc && (
-        <Card title={`${PROCEDURES[proc].label} — steps`}>
-          <ol style={{ margin: 0, paddingLeft: 20, font: mono(13), lineHeight: 1.55 }}>
-            {PROCEDURES[proc].steps.map((st, i) => <li key={i}>{st}</li>)}
-          </ol>
-        </Card>
-      )}
 
       {r.warnings.map((w, i) => (
         <div key={i} style={{ background: "#FDF1EE", border: `1px solid ${C.warn}`, color: C.warn, borderRadius: 10, padding: "9px 12px", marginBottom: 7, font: mono(12.5) }}>⚠ {w}</div>

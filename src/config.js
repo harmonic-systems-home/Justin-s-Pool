@@ -23,16 +23,28 @@ export const DEFAULT_CONFIG = {
   },
 
   rates: {
-    // PG&E E-TOU-C assumption: peak 4–9 PM every day, off-peak all other hours.
-    electric: { plan: "E-TOU-C", peakStart: "16:00", peakEnd: "21:00", peak: 0.61, offPeak: 0.44,
-                prov: prov("est", null, "E-TOU-C summer-ish placeholder — edit to the actual bill") },
+    // SMUD Time-of-Day (5–8 PM peak). Fair Oaks is SMUD electric — PG&E supplies
+    // only the gas. Seasonal, weekday-based, with a midnight–6 AM EV discount band
+    // (the cheapest energy on the calendar, and a target window). Verify vs
+    // Justin's bill (Commissioning 14) and update annually.
+    // Fixed weekday periods: peak 5–8 PM; summer mid-peak noon–5 PM + 8 PM–mid;
+    // off-peak everything else; EV band midnight–6 AM = off-peak − discount.
+    electric: {
+      plan: "SMUD TOD (5–8 PM)", season: "auto",
+      summer: { peak: 0.3765, midPeak: 0.2139, offPeak: 0.1550 },
+      winter: { peak: 0.1776, offPeak: 0.1285 },
+      ev: { enabled: true, discount: 0.015 },
+      prov: prov("est", null, "SMUD TOD 2026 structure — verify vs bill (Commissioning 14)"),
+    },
     gas: { perTherm: 2.20, prov: prov("est", null, "PG&E ~$/therm — editable") },
   },
 
   pump: {
-    // A measured Watts@RPM here (Commissioning test 3) overrides the affinity-law
-    // estimate used everywhere else.
-    anchorRpm: 1350, anchorWatts: 136, wattsProv: prov("measured", "2026-07-20", "clamp meter at 1350 RPM"),
+    anchorRpm: 1350, anchorWatts: 136,
+    // Measured Watts@RPM override the affinity-law (P∝RPM³) estimate everywhere
+    // (Commissioning test 3). Seeded with the one measured point.
+    wattsByRpm: { 1350: 136 },
+    wattsProv: prov("measured", "2026-07-20", "clamp meter @ 1350 RPM"),
     gpmPerRpm: 0.02, gpmProv: prov("est", null, "back-solved from the handoff's ~62k gal/day"),
   },
 
@@ -75,6 +87,13 @@ export const DEFAULT_CONFIG = {
 
   notes: "",
 
+  // SENSITIVE bucket — competitively/personally private values. Empty in the
+  // public bundle by design: these arrive ONLY via passphrase-authenticated sync
+  // from the private data repo, so an unauthenticated browser never receives them
+  // (redaction by absence — view-source-proof). The UI locks them and excludes
+  // them from totals until unlocked.
+  private: { poolGuyFeeMonthly: "", contractNumber: "" },
+
   // Commissioning results: testId -> { value, date, who }. These flip badges.
   commissioning: {},
   // Remediation tasks (fixes, not tests): taskId -> { done, date, notes }.
@@ -110,3 +129,8 @@ function merge(def, saved) {
   return saved === undefined ? def : saved;
 }
 export const loadConfig = (saved) => merge(DEFAULT_CONFIG, saved || {});
+
+// Merge two configs for conflict resolution: `over` wins on scalars, but keyed
+// objects (commissioning, remediation, wattsByRpm) keep entries from both — the
+// disjoint-merge the sync design relies on.
+export const mergeConfigs = (base, over) => merge(base, over);

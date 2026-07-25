@@ -11,7 +11,7 @@ import { C, mono, Badge, NumField, TimeField, money } from "./ui.jsx";
 
 const recompute = (b) => ({ ...b, hours: +(duration(b) / 60).toFixed(2) });
 
-export default function ScheduleEditor({ bands, rates, onChange, allowAddRemove = false }) {
+export default function ScheduleEditor({ bands, rates, pump, onChange, allowAddRemove = false }) {
   const setBand = (i, patch) => onChange(bands.map((b, j) => (j === i ? recompute({ ...b, ...patch }) : b)));
   const remove = (i) => onChange(bands.filter((_, j) => j !== i));
   const add = () => onChange([...bands, recompute({
@@ -39,8 +39,8 @@ export default function ScheduleEditor({ bands, rates, onChange, allowAddRemove 
         </thead>
         <tbody>
           {bands.map((b, i) => {
-            const kwh = bandKWh(b);
-            const cost = rates ? bandTOU(b, rates).cost : 0;
+            const kwh = bandKWh(b, pump);
+            const cost = rates ? bandTOU(b, rates, pump).cost : 0;
             return (
               <tr key={b.id ?? i} style={{ borderBottom: `1px solid ${C.pad}` }}>
                 <td style={{ ...cell, textAlign: "left", font: mono(12, 600) }}>{b.label}</td>

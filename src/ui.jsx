@@ -84,3 +84,20 @@ export function TimeField({ value, onChange }) {
 }
 
 export const money = (n, dp = 0) => `$${(n ?? 0).toFixed(dp)}`;
+
+// A SENSITIVE value. When `authed` (the passphrase/PAT is present on this
+// device) it's an editable field; otherwise it renders as a lock — the real
+// protection is that the value only arrives via authenticated sync, so an
+// unauthenticated device simply never has it.
+export function Sensitive({ authed, value, onChange, placeholder, prefix }) {
+  if (!authed) {
+    return <span style={{ font: mono(11.5), color: C.faint }}>🔒 unlock in Cloud sync to view</span>;
+  }
+  return (
+    <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
+      {prefix && <span style={{ font: mono(11.5), color: C.faint }}>{prefix}</span>}
+      <input value={value ?? ""} placeholder={placeholder} onChange={(e) => onChange(e.target.value)}
+        style={{ font: mono(12), padding: "6px 8px", border: `1.5px solid ${C.timer}`, borderRadius: 8, color: C.ink, background: "#fff", width: 140 }} />
+    </span>
+  );
+}

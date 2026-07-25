@@ -14,12 +14,22 @@ export const wattsAtRpm = (rpm) => ANCHOR_W * (rpm / ANCHOR_RPM) ** 3;
 // (Schedules now live in config.js as the single source of truth — the physics
 // helpers below operate on whatever bands a caller passes in.)
 
-// kWh/day and flat-rate $/day for a single speed band, and the schedule total.
-export const bandKWh = (b) => (wattsAtRpm(b.rpm) / 1000) * b.hours;
-export const bandCost = (b, rate) => bandKWh(b) * rate;
+// Watts at an RPM. A MEASURED point in pump.wattsByRpm wins (Commissioning test
+// 3 — measured overrides estimate everywhere); otherwise the affinity law,
+// anchored to the measured 1350-RPM point (or a config-supplied anchor).
+export function wattsAt(rpm, pump) {
+  const t = pump?.wattsByRpm;
+  if (t && t[rpm] != null && t[rpm] !== "") return +t[rpm];
+  const aR = pump?.anchorRpm ?? ANCHOR_RPM, aW = pump?.anchorWatts ?? ANCHOR_W;
+  return aW * (rpm / aR) ** 3;
+}
 
-export const kWhPerDay = (schedule) =>
-  schedule.reduce((t, s) => t + bandKWh(s), 0);
+// kWh/day and flat-rate $/day for a single speed band, and the schedule total.
+export const bandKWh = (b, pump) => (wattsAt(b.rpm, pump) / 1000) * b.hours;
+export const bandCost = (b, rate, pump) => bandKWh(b, pump) * rate;
+
+export const kWhPerDay = (schedule, pump) =>
+  schedule.reduce((t, s) => t + bandKWh(s, pump), 0);
 
 // Flow ∝ RPM. Anchor back-solved from the handoff's ~62k gal/day current
 // schedule (~0.02 GPM per RPM ⇒ 3250 RPM ≈ 65 GPM, 1350 ≈ 27 GPM).

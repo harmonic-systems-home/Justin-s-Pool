@@ -91,12 +91,23 @@ export default function Commissioning({ config, update }) {
         <Recorder config={config} update={update} id="cabinet" placeholder="width in / any plate reading" />
       </TestCard>
 
-      <TestCard n={3} title="Watts per speed → power curve" badge={badgeFor(config.pump.wattsProv)}
-        steps={["Read the IntelliFlo display Watts at each RPM.", "Enter one high-RPM point to anchor the affinity curve (or the measured 1350 point)."]}>
-        <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", font: mono(11.5) }}>
-          <span>at</span><NumField value={config.pump.anchorRpm} step="50" width={70} onChange={(v) => update((d) => { d.pump.anchorRpm = v; })} /><span>RPM =</span>
-          <NumField value={config.pump.anchorWatts} step="10" width={80} onChange={(v) => update((d) => { d.pump.anchorWatts = v; d.pump.wattsProv = prov("measured", today()); })} /><span>W</span>
-          <span style={{ color: C.faint }}>→ overrides the affinity-law estimate everywhere</span>
+      <TestCard n={3} title="Watts per configured speed → power curve" badge={badgeFor(config.pump.wattsProv)}
+        steps={["Start each programmed speed, let it stabilize ~30 s, read Watts off the IntelliFlo display.", "Any point entered overrides the affinity-law (P∝RPM³) estimate at that RPM everywhere in Costs/What-If; two or three points also validate the curve shape.", "Bonus while cycling: note the filter-gauge PSI at each RPM → a free flow-restriction baseline."]}>
+        <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center", font: mono(11.5) }}>
+          {[
+            { rpm: 1350, note: "measured 7/20" }, { rpm: 2600, note: "proposed turnover" },
+            { rpm: 3000, note: "Speed 2" }, { rpm: 3030, note: "Speed 4" },
+            { rpm: 3250, note: "Speed 1" }, { rpm: 3450, note: "Speed 3 heat" },
+          ].map(({ rpm, note }) => (
+            <label key={rpm} style={{ display: "inline-flex", flexDirection: "column", gap: 2 }}>
+              <span style={{ color: C.faint }}>{rpm} <span style={{ fontSize: 9 }}>{note}</span></span>
+              <NumField value={config.pump.wattsByRpm?.[rpm] ?? ""} step="10" min="0" width={72} suffix="W"
+                onChange={(v) => update((d) => {
+                  d.pump.wattsByRpm = { ...(d.pump.wattsByRpm || {}), [rpm]: v === "" ? undefined : v };
+                  if (v !== "") d.pump.wattsProv = prov("measured", today());
+                })} />
+            </label>
+          ))}
         </div>
       </TestCard>
 
@@ -162,6 +173,17 @@ export default function Commissioning({ config, update }) {
       <TestCard n={13} title="Fill-line trace" badge={badgeFor(prov("est"))}
         steps={["The white PVC riser with the brass valve by the fence (near the heater) is believed a dedicated domestic fill line.", "Open it briefly; find where water emerges at the pool; label the valve.", "The rusty galvanized bib at the house wall is an ordinary hose bib, not this."]}>
         <Recorder config={config} update={update} id="fillLine" placeholder="where water emerges / confirmed fill line?" />
+      </TestCard>
+
+      <TestCard n={14} title="SMUD rate & EV-discount verification" badge={badgeFor(config.rates.electric.prov)}
+        steps={["From Justin's SMUD bill: record the rate schedule name (TOD 5–8 PM expected) and the current $/kWh for each period → enter into the Costs rate table.",
+          "Confirm the EV discount is active: the Tesla must be DMV-registered at the SMUD service address. Check the bill for the midnight–6 AM discount line, or Justin's SMUD account. If absent, registering it is a free ~1.5¢/kWh on all overnight usage (pool + car).",
+          "Note the season boundaries (Jun 1 / Oct 1) so the Costs tab switches seasonally."]}>
+        <Recorder config={config} update={update} id="smudRate" placeholder="schedule name · period $/kWh · EV discount active?" />
+        <div style={{ font: mono(11, 600), color: C.ok, marginTop: 6, cursor: "pointer" }}
+          onClick={() => update((d) => { d.rates.electric.prov = prov("measured", today(), "verified vs bill"); })}>
+          ✓ mark the Costs rate table MEASURED (after entering bill values)
+        </div>
       </TestCard>
 
       <Divider>Lighting reverse-engineering (L-series) — one metering session, helper + multimeter</Divider>

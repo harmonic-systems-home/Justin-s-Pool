@@ -20,10 +20,11 @@ export default function WhatIf({ config, update, now }) {
   const gal = poolGal(config);
   const f = config.valves.splitFraction.val;
 
+  const pump = config.pump;
   const metrics = (sched) => {
-    const cost = scheduleTOU(sched, rates).cost;
+    const cost = scheduleTOU(sched, rates, pump).cost;
     const to = turnovers(sched, gal, gpr);
-    return { kwh: kWhPerDay(sched), mo: cost * 30, to, poolTo: to * (1 - f), gpkwh: galPerKWh(sched, gpr) };
+    return { kwh: kWhPerDay(sched, pump), mo: cost * 30, to, poolTo: to * (1 - f), gpkwh: galPerKWh(sched, gpr) };
   };
   const a = metrics(active), p = metrics(proposed);
 
@@ -74,11 +75,11 @@ export default function WhatIf({ config, update, now }) {
 
       <Card title="Proposed 24-hour schedule">
         <Timeline C={C} pumpWindows={proposed} pumpBands={proposed} booster={PROP_BOOSTER}
-          rightTimer={{ dogsIn: true, lever: "on" }} heaterMode="standby" nowMinutes={now} rates={rates} />
+          rightTimer={{ dogsIn: true, lever: "on" }} heaterMode="standby" nowMinutes={now} rates={rates} pump={config.pump} />
       </Card>
 
       <Card title="Draft schedule (editable)">
-        <ScheduleEditor bands={proposed} rates={rates} allowAddRemove
+        <ScheduleEditor bands={proposed} rates={rates} pump={config.pump} allowAddRemove
           onChange={(next) => update((d) => { d.schedules.proposed = next; })} />
         <div style={{ font: mono(10.5), color: C.faint, marginTop: 6 }}>
           §6.5 draft: ~2600 RPM turnover 6:55a–noon + 1350 overnight, 12–8 PM off (robot skimmer covers the surface). Booster (dogs in) 9:30–11:30, inside the turnover window.

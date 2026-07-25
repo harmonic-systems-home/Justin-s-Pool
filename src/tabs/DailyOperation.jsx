@@ -253,7 +253,7 @@ export default function DailyOperation({ config, update, now }) {
       </div>
 
       <Timeline C={C} pumpWindows={active} pumpBands={active} booster={{ start: bt.start, end: bt.end }}
-        rightTimer={{ dogsIn: bt.dogsIn, lever: bt.lever }} heaterMode={sim.heaterMode} nowMinutes={now} rates={rates} />
+        rightTimer={{ dogsIn: bt.dogsIn, lever: bt.lever }} heaterMode={sim.heaterMode} nowMinutes={now} rates={rates} pump={config.pump} />
 
       {/* procedures */}
       <div style={{ display: "flex", gap: 8, flexWrap: "wrap", margin: "2px 0 10px" }}>
@@ -276,7 +276,7 @@ export default function DailyOperation({ config, update, now }) {
 
       {/* active schedule editor (per-window RPM, unmerged) */}
       <Card title="Active schedule" right={<Badge prov={active[0]?.prov} />}>
-        <ScheduleEditor bands={active} rates={rates}
+        <ScheduleEditor bands={active} rates={rates} pump={config.pump}
           onChange={(next) => update((d) => { d.schedules.active = next; })} />
         <div style={{ font: mono(10.5), color: C.faint, marginTop: 6 }}>Per-window RPM — Speed 1 and Speed 2 stay separate (the 3:00–3:05 overlap is charged to Speed 1). Edit times/RPM and every tab recomputes.</div>
       </Card>

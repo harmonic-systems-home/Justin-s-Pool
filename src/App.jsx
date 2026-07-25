@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { load, save, isPersistent } from "./storage.js";
 import { loadConfig, DEFAULT_CONFIG } from "./config.js";
 import { C, FONT_CSS, mono, cond } from "./ui.jsx";
+import SyncPanel from "./SyncPanel.jsx";
 
 import DailyOperation from "./tabs/DailyOperation.jsx";
 import Maintenance from "./tabs/Maintenance.jsx";
@@ -33,6 +34,7 @@ const TABS = [
 export default function App() {
   const [config, setConfig] = useState(() => loadConfig(load(KEY_CFG, {})));
   const [tab, setTab] = useState(() => load(KEY_TAB, "daily"));
+  const [authed, setAuthed] = useState(false);
   const firstCfg = useRef(true);
   const importRef = useRef(null);
 
@@ -97,14 +99,16 @@ export default function App() {
         </div>
       </div>
 
+      <div style={{ marginTop: 10 }}><SyncPanel config={config} setConfig={setConfig} onAuthChange={setAuthed} /></div>
+
       {/* tab bar */}
-      <div style={{ display: "flex", gap: 7, flexWrap: "wrap", margin: "10px 0" }}>
+      <div style={{ display: "flex", gap: 7, flexWrap: "wrap", margin: "4px 0 10px" }}>
         {TABS.map((t) => (
           <button key={t.id} style={chip(t.id === tab)} onClick={() => setTab(t.id)}>{t.label}</button>
         ))}
       </div>
 
-      <Active config={config} update={update} setConfig={setConfig} now={now} />
+      <Active config={config} update={update} setConfig={setConfig} now={now} authed={authed} />
 
       <div style={{ font: mono(10.5), color: C.faint, marginTop: 10, lineHeight: 1.5 }}>
         One config object drives every tab; Commissioning writes measured values back into it (flipping EST/PENDING → MEASURED). Export/Import moves that record between devices.

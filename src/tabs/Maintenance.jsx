@@ -1,11 +1,11 @@
 import React from "react";
-import { C, mono, Card, H, TextField } from "../ui.jsx";
+import { C, mono, Card, H, TextField, Sensitive } from "../ui.jsx";
 
 // Servicing view: the recurring rituals + editable notes/dates. Static guidance
 // comes from the handoff; the fields persist into config so a service log
 // accumulates and exports with everything else.
 
-export default function Maintenance({ config, update }) {
+export default function Maintenance({ config, update, authed }) {
   const m = config.maintenance;
   const set = (k, v) => update((d) => { d.maintenance[k] = v; });
   const note = (label, key, ph) => (
@@ -48,6 +48,12 @@ export default function Maintenance({ config, update }) {
 
       <Card title="Pool service">
         {note("Pool guy — visit schedule, known activities, questions queue", "poolGuy", "visit cadence · what they do · open questions")}
+        <div style={{ font: mono(11.5), color: C.ink, display: "flex", gap: 8, alignItems: "center", marginTop: 4 }}>
+          <span style={{ color: C.faint }}>Contract #</span>
+          <Sensitive authed={authed} value={config.private.contractNumber} placeholder="service contract no."
+            onChange={(v) => update((d) => { d.private.contractNumber = v; })} />
+          <span style={{ font: mono(9, 700), color: C.warn, background: "#FDECE7", border: `1px solid ${C.warn}`, borderRadius: 5, padding: "1px 5px" }}>SENSITIVE</span>
+        </div>
       </Card>
     </div>
   );

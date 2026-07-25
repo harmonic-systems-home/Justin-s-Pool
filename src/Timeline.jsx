@@ -1,7 +1,7 @@
 import React from "react";
 import { DAY, spans, toMinutes, fmt, fmtWindow, uncoveredMinutes } from "./schedule.js";
 import { bandCost, DEFAULT_RATE } from "./energy.js";
-import { bandTOU } from "./tou.js";
+import { bandTOU, rateSegments, effectiveSeason, PERIOD_STYLE } from "./tou.js";
 
 // 24-hour strip showing which clock runs what, and where they disagree.
 //
@@ -27,10 +27,11 @@ const rpmT = (rpm) => Math.max(0, Math.min(1, (rpm - 1200) / (3450 - 1200)));
 const flowFill = (rpm) => `hsl(202 68% ${Math.round(66 - rpmT(rpm) * 34)}%)`;
 const flowInk = (rpm) => (rpmT(rpm) < 0.4 ? "#12303B" : "#fff");
 
-export default function Timeline({ C, pumpWindows, booster, rightTimer, heaterMode, nowMinutes, pumpBands, rate = DEFAULT_RATE, rates }) {
-  // Per-band $/day is TOU-aware when a rate table is supplied (peak vs off-peak
-  // split), else a flat rate — so the timeline matches the Costs tab.
-  const bandDollars = (b) => (rates ? bandTOU(b, rates).cost : bandCost(b, rate));
+export default function Timeline({ C, pumpWindows, booster, rightTimer, heaterMode, nowMinutes, pumpBands, rate = DEFAULT_RATE, rates, pump }) {
+  const season = rates && effectiveSeason(rates);
+  // Per-band $/day is TOU-aware when a rate table is supplied (SMUD periods +
+  // EV band), else a flat rate — so the timeline matches the Costs tab.
+  const bandDollars = (b) => (rates ? bandTOU(b, rates, pump, season).cost : bandCost(b, rate, pump));
   const width = 1000;
   const trackX = LABEL_W;
   const trackW = width - LABEL_W - RIGHT_PAD;
@@ -67,18 +68,17 @@ export default function Timeline({ C, pumpWindows, booster, rightTimer, heaterMo
   const pumpTotal = pumpBands ? pumpBands.reduce((t, b) => t + bandDollars(b), 0) : null;
 
   // Optional TOU-rate lane — the "bar set" showing est $/kWh across the day so
-  // the peak window (and why the redesign shifts load off it) reads at a glance.
+  // the peak window, the mid-peak shoulders, and the cheap midnight–6 AM EV band
+  // all read at a glance (and why the redesign shifts load off peak).
   const touLane = rates && (() => {
-    const pS = toMinutes(rates.peakStart), pE = toMinutes(rates.peakEnd);
     const cts = (v) => `${Math.round(v * 100)}¢`;
-    const off = "#DAE8DE", peak = "#EBC7B7";
     return {
-      key: "tou", label: "TOU RATE", sub: rates.plan || "time-of-use",
-      bars: [
-        { sp: [0, pS], fill: off, text: cts(rates.offPeak), ink: "#3B5A2F" },
-        { sp: [pS, pE], fill: peak, text: `${cts(rates.peak)} peak`, ink: "#8C2E1B" },
-        { sp: [pE, DAY], fill: off, text: cts(rates.offPeak), ink: "#3B5A2F" },
-      ],
+      key: "tou", label: "TOU RATE", sub: `${rates.plan || "TOU"} · ${season}`,
+      bars: rateSegments(rates, season).map((s) => {
+        const st = PERIOD_STYLE[s.period];
+        const suffix = s.period === "peak" ? " pk" : s.period === "ev" ? " EV" : "";
+        return { sp: [s.start, s.end], fill: st.fill, ink: st.ink, text: cts(s.rate) + suffix };
+      }),
     };
   })();
 
@@ -199,9 +199,7 @@ export default function Timeline({ C, pumpWindows, booster, rightTimer, heaterMo
 
       <div style={{ font: "500 11px 'IBM Plex Mono', monospace", color: C.faint, marginTop: 6, lineHeight: 1.5 }}>
         {pumpBands
-          ? <span>filtration ~${pumpTotal.toFixed(2)}/day{rates
-              ? ` (${rates.plan}: ${Math.round(rates.offPeak * 100)}¢ off-peak / ${Math.round(rates.peak * 100)}¢ peak)`
-              : ` (est @ ${(rate * 100).toFixed(1)}¢/kWh)`} · deeper blue = higher RPM</span>
+          ? <span>filtration ~${pumpTotal.toFixed(2)}/day{rates ? ` · ${rates.plan} (${season} weekday)` : ` (est @ ${(rate * 100).toFixed(1)}¢/kWh)`} · deeper blue = higher RPM</span>
           : pumpWindows.map((w, i) => <span key={i}>filtration {fmtWindow(w)}{i < pumpWindows.length - 1 ? " · " : ""}</span>)}
         {dogsIn
           ? <> · booster {fmtWindow(booster)}</>

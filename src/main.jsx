@@ -1,9 +1,9 @@
 import React from "react";
 import { createRoot } from "react-dom/client";
-import PoolSystem from "./PoolSystem.jsx";
+import App from "./App.jsx";
 
 createRoot(document.getElementById("root")).render(
   <React.StrictMode>
-    <PoolSystem />
+    <App />
   </React.StrictMode>
 );

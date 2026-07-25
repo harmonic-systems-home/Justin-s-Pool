@@ -1,6 +1,7 @@
 import React from "react";
 import { DAY, spans, toMinutes, fmt, fmtWindow, uncoveredMinutes } from "./schedule.js";
 import { bandCost, DEFAULT_RATE } from "./energy.js";
+import { bandTOU } from "./tou.js";
 
 // 24-hour strip showing which clock runs what, and where they disagree.
 //
@@ -26,7 +27,10 @@ const rpmT = (rpm) => Math.max(0, Math.min(1, (rpm - 1200) / (3450 - 1200)));
 const flowFill = (rpm) => `hsl(202 68% ${Math.round(66 - rpmT(rpm) * 34)}%)`;
 const flowInk = (rpm) => (rpmT(rpm) < 0.4 ? "#12303B" : "#fff");
 
-export default function Timeline({ C, pumpWindows, booster, rightTimer, heaterMode, nowMinutes, pumpBands, rate = DEFAULT_RATE }) {
+export default function Timeline({ C, pumpWindows, booster, rightTimer, heaterMode, nowMinutes, pumpBands, rate = DEFAULT_RATE, rates }) {
+  // Per-band $/day is TOU-aware when a rate table is supplied (peak vs off-peak
+  // split), else a flat rate — so the timeline matches the Costs tab.
+  const bandDollars = (b) => (rates ? bandTOU(b, rates).cost : bandCost(b, rate));
   const width = 1000;
   const trackX = LABEL_W;
   const trackW = width - LABEL_W - RIGHT_PAD;
@@ -56,13 +60,30 @@ export default function Timeline({ C, pumpWindows, booster, rightTimer, heaterMo
         const segs = spans(b);
         if (!segs.length) return [];
         const widest = segs.reduce((a, c) => (c[1] - c[0] > a[1] - a[0] ? c : a));
-        const cost = bandCost(b, rate);
+        const cost = bandDollars(b);
         return segs.map((sp) => ({ sp, fill: flowFill(b.rpm), rpm: b.rpm, cost: sp === widest ? cost : null }));
       })
     : pumpWindows.flatMap((w) => spans(w).map((sp) => ({ sp, fill: C.flow })));
-  const pumpTotal = pumpBands ? pumpBands.reduce((t, b) => t + bandCost(b, rate), 0) : null;
+  const pumpTotal = pumpBands ? pumpBands.reduce((t, b) => t + bandDollars(b), 0) : null;
+
+  // Optional TOU-rate lane — the "bar set" showing est $/kWh across the day so
+  // the peak window (and why the redesign shifts load off it) reads at a glance.
+  const touLane = rates && (() => {
+    const pS = toMinutes(rates.peakStart), pE = toMinutes(rates.peakEnd);
+    const cts = (v) => `${Math.round(v * 100)}¢`;
+    const off = "#DAE8DE", peak = "#EBC7B7";
+    return {
+      key: "tou", label: "TOU RATE", sub: rates.plan || "time-of-use",
+      bars: [
+        { sp: [0, pS], fill: off, text: cts(rates.offPeak), ink: "#3B5A2F" },
+        { sp: [pS, pE], fill: peak, text: `${cts(rates.peak)} peak`, ink: "#8C2E1B" },
+        { sp: [pE, DAY], fill: off, text: cts(rates.offPeak), ink: "#3B5A2F" },
+      ],
+    };
+  })();
 
   const lanes = [
+    ...(touLane ? [touLane] : []),
     {
       key: "pump",
       label: "INTELLIFLO",
@@ -134,22 +155,24 @@ export default function Timeline({ C, pumpWindows, booster, rightTimer, heaterMo
               <rect x={trackX} y={y} width={trackW} height={LANE_H} rx="5"
                 fill="#F4F7F7" stroke={C.pipe} strokeWidth="1" />
 
-              {lane.bars.map(({ sp, fill, hatch, rpm, cost }, j) => {
+              {lane.bars.map(({ sp, fill, hatch, rpm, cost, text, ink }, j) => {
                 const x0 = xOf(sp[0]);
                 const w = Math.max(2, xOf(sp[1]) - x0);
-                // Fit the richest label the band width allows: RPM + $/day, then
-                // RPM + $, then bare RPM, then nothing on a sliver.
-                const label = rpm == null ? null
+                // Fit the richest label the band width allows: an explicit text
+                // (TOU lane), else RPM + $/day, then RPM + $, then bare RPM.
+                const label = text != null ? (w > 34 ? text : null)
+                  : rpm == null ? null
                   : cost != null && w > 150 ? `${rpm} RPM · $${cost.toFixed(2)}/day`
                   : cost != null && w > 74 ? `${rpm} · $${cost.toFixed(2)}`
                   : w > 40 ? `${rpm}` : null;
+                const labelInk = text != null ? (ink || C.ink) : (rpm != null ? flowInk(rpm) : "#fff");
                 return (
                   <g key={j}>
                     <rect x={x0} y={y + 3} width={w} height={LANE_H - 6}
                       rx="4" fill={hatch ? "url(#tl-hatch)" : fill} stroke={hatch ? C.hot : "none"} strokeWidth="1" />
                     {label && (
                       <text x={x0 + w / 2} y={y + LANE_H / 2 + 3} textAnchor="middle"
-                        style={{ font: "700 9px 'IBM Plex Mono', monospace", fill: rpm != null ? flowInk(rpm) : "#fff" }}>{label}</text>
+                        style={{ font: "700 9px 'IBM Plex Mono', monospace", fill: labelInk }}>{label}</text>
                     )}
                   </g>
                 );
@@ -176,7 +199,9 @@ export default function Timeline({ C, pumpWindows, booster, rightTimer, heaterMo
 
       <div style={{ font: "500 11px 'IBM Plex Mono', monospace", color: C.faint, marginTop: 6, lineHeight: 1.5 }}>
         {pumpBands
-          ? <span>filtration ~${pumpTotal.toFixed(2)}/day (est @ {(rate * 100).toFixed(1)}¢/kWh) · deeper blue = higher RPM</span>
+          ? <span>filtration ~${pumpTotal.toFixed(2)}/day{rates
+              ? ` (${rates.plan}: ${Math.round(rates.offPeak * 100)}¢ off-peak / ${Math.round(rates.peak * 100)}¢ peak)`
+              : ` (est @ ${(rate * 100).toFixed(1)}¢/kWh)`} · deeper blue = higher RPM</span>
           : pumpWindows.map((w, i) => <span key={i}>filtration {fmtWindow(w)}{i < pumpWindows.length - 1 ? " · " : ""}</span>)}
         {dogsIn
           ? <> · booster {fmtWindow(booster)}</>

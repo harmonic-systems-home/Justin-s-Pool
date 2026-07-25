@@ -41,7 +41,7 @@ Booster branch: filter-output tap → Polaris PB4-60 → dedicated cleaner line 
 - Waterfall is **downstream of the heater** — a return destination, not a heat path.
 - **Series return topology (refined 7/20):** heater out → PAD VALVE → {waterfall's own dedicated line} OR {under-deck return trunk → DECK RETURN VALVE → pool floor returns or spa jets}. The deck valves are IN-LINE for all main-pool circulation — 100% of daily flow passes through them; the spa legs are the switched branch. Spa procedures never touch the pad valve because it must already be on POOL for water to reach the deck valve.
 - **Pool floor returns:** two (deep end + shallow end), manifolded as the pool branch — believed to go quiet together in full SPA mode (verify: 10-min spa-level test + hand over each floor return).
-- **HAZARD:** pad valve on WATERFALL while suction is on SPA pumps the spa out through the waterfall → spa drain-down. No documented procedure produces this state; a wrong-order valve session could.
+- **HAZARD:** pad valve on WATERFALL while suction draws any spa fraction (full SPA **or the resting SPLIT**) pumps the spa out through the waterfall → spa drain-down (slow at split, fast at full spa). Rule: **any pad-valve diversion requires deck valves at POOL first.** No documented procedure produces the bad state; a casual "turn on the waterfall" from rest would.
 - **v3 app topology bug (next iteration):** schematic draws the spa return parallel to the pad valve; reality is series (pad valve → deck valve). Redraw and add the spa+waterfall warning.
 - Series-loop consequence: dirty filter reduces GPM everywhere; heater flow switch (~40 GPM class) is first to complain.
 
@@ -83,13 +83,17 @@ Four clocks exist; only some matter:
 - [ ] **Schedule cost review (biggest $ lever):** 11 h/day at 3000–3250 RPM ≈ 18–22 kWh/day ≈ $80–100/mo SMUD. A long-low profile (more hours at 1350–1800) could cut this 3–4×. Ask pool guy about skimming needs under the trees before changing (chlorine constraint now cleared). Evening 48-min gap (6:02–6:50p) — intentional or oversight?
 - [ ] **Standby trap is worse than assumed:** pump flows ~23 h/day, so a heater left on POOL fires nearly continuously — potentially $100+/day of gas, not just an overnight run.
 - [ ] Hayward rating plate: BTU input (for gas cost model); model number.
-- [ ] Pool volume (gallons) — for heat-rise time estimates.
+- [x] **Pool volume: ESTIMATED 7/25/26** — 35' × 15' bounding, 5' avg depth, freeform factor ~0.8 → **~15,500 gal pool (±15%), ~16,300 with spa at split**. Turnover check on proposed TOU schedule: ~34–38k gal/day ≈ **2.2–2.4 turnovers** vs 1.0 standard → schedule validated with 2× margin (could trim further later). Heating: ~129k lbs water → ~1.6 °F/hr (H250) to ~2.5 °F/hr (H400); the 3:10 egg timer ≈ 5–8 °F per session pending BTU plate.
 - [ ] Left Intermatic: confirm full load list (SunTouch + pump + heater? lights?) — it is the de facto master disconnect. Both timers CONFIRMED tripper-less (manual-lever operation; pool guy installs dogs seasonally for the booster).
 - [ ] Cleaner-season question for Justin/pool guy: when dogs go in, what window do they set, and does the IntelliFlo midday schedule cover it?
 - [ ] SunTouch breaker-off test: does heater still fire? (Proves fireman's-switch bypass.) Does anything else die (booster? lights?)
 - [ ] SunTouch deadfront photos: which terminals actually have field wiring (actuators? booster relay? IntelliFlo com?).
 - [ ] Valve actuator seen in pad photos: attached to which valve, functional or frozen, cable landed where?
-- [ ] Deck pair: which valve is suction vs return; label both.
+- [ ] **Split-fraction calibration (deck valves at SPLIT):** target f ≈ 10–15% of flow to spa (over-proportional to volume is CORRECT — small warm bodies need faster turnover; spa gets 4–6 turnovers/day, pool keeps (1−f)×2.3 ≈ 2.0× at f=0.15; compensation with extra pump hours only needed if f drifts past ~0.5). Handle angle: small crack toward spa (~10–15°), not 45°.
+  - **Drain-rate test (quantifies suction-side f, ~10 min):** suction valve at its split setting, rotate ONLY the return valve to full POOL. Spa drains at f×Q. Spa surface ≈ 38 ft² → **1 inch of level ≈ 24 gal**. Example: 1" drop in 5 min = 4.8 GPM; vs ~60 GPM total → f ≈ 8%. Restore return valve after.
+  - **Dye test (return side, optional):** food coloring in spa; half-fade time τ ≈ 800/(f×Q) cross-checks return share.
+  - **Set + mark:** adjust both handles until suction-f ≈ return-f (spa level stable over a day), then PAINT-PEN the calibrated positions on the deck collars. Ongoing monitor is free: a moving spa level = the split has drifted.
+  - Side effect: this test also IDENTIFIES which deck valve is suction vs return (rotate one to full POOL: spa level DROPS → you moved the return valve; RISES → you moved the suction valve). Label both while marking.
 - [ ] Light circuits: which timer/switch controls each of the three J-boxes.
 - [ ] Waterfall: any dedicated pump, or purely a return leg? (Assumed return leg.)
 
@@ -98,6 +102,8 @@ Four clocks exist; only some matter:
 ### 6.5 Proposed IntelliFlo reprogram (draft — pending pool-guy sign-off, gallons, chlorination answer)
 
 **Rationale:** current high-RPM daytime profile is believed to be a vestige of the decommissioned rooftop solar (high flow needed to lift to roof during sun hours). Solar is gone; household is on SMUD TOU (Tesla EV plan) → shift volume off-peak. Measured: 136 W @ 1350 RPM; cube-law estimates: ~1.0 kW @ 2600, ~1.49 kW @ 3000, ~1.9 kW @ 3250, ~2.27 kW @ 3450.
+
+**Current vs proposed (the one-paragraph case):** The current schedule moves ~62,000 gal/day ≈ **4.0 turnovers** — 4× the residential standard — for ~21 kWh (~$105/mo), i.e. ~2,900 gal/kWh. The proposed schedule moves ~36,000 gal/day ≈ **2.2–2.4 turnovers** — still >2× standard — for ~6.5 kWh (~$25/mo), i.e. ~5,500 gal/kWh: nearly double the water per unit of energy (cube law — flow scales with RPM, power with RPM³), shifted entirely off-peak. Nobody specs 4 turnovers for water quality; that number is the fingerprint of the old solar design goal (hours of high flow across a hot roof). The panels left; the schedule stayed. Proposed change trims luxury margin, not adequacy.
 
 **Scheduled speeds (see button/menu reassignment below):**
 | Slot | Time | RPM | Purpose |
@@ -113,7 +119,7 @@ Est. ~6.5 kWh/day ≈ $25/mo vs current ~21 kWh/day ≈ $105/mo → **~$80/mo sa
 |---|---|---|---|---|
 | 1 | **Heat pool** | 3450 | 3:10 | Deck valves POOL, heater MODE→POOL, pad valve per filter state. Pump self-stops; heater STANDBY return is manual |
 | 2 | **Heat spa** | ~2800 | ~1:00 | Deck valves→SPA, heater MODE→SPA. Restore valves + standby after |
-| 3 | **Waterfall show** | ~2800 | ~2:00 | Pad valve→WATERFALL, no heater. Auto-stop ends the show |
+| 3 | **Waterfall show** | ~2800 | ~2:00 | **Deck valves → POOL first** (at split, the waterfall slowly drains the spa: pad valve starves the return trunk while split suction keeps drawing from spa). Then pad valve→WATERFALL. Only the suction deck valve strictly must move (return valve is on a dead leg once pad diverts) — rotate both until suction/return are labeled. Alternative to test: PARTIAL pad-valve position feeds waterfall + trunk simultaneously, keeping spa balanced from split — single-valve show if the falls look OK at reduced flow. Restore valves after; auto-stop ends the show |
 | 4 | Manual utility speed (as-is, 3030) | — | — | Override/testing |
 
 **Scheduled slots (menu-only):** Speed 5 = 6:55 AM–12:00 PM @ ~2600 (turnover/skimming, off-peak); Speed 6 = 8:00 PM–6:55 AM @ 1350/136 W (overnight + freeze). 12 PM–8 PM off.

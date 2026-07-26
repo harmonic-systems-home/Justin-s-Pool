@@ -109,6 +109,9 @@ export default function Commissioning({ config, update }) {
             </label>
           ))}
         </div>
+        <div style={{ font: mono(10.5), color: C.faint, marginTop: 6, lineHeight: 1.5 }}>
+          Only <b>1350 RPM → 136 W</b> is measured (7/20). The RPMs are the observed speed presets, but their Watts are <b>affinity-law estimates</b> (P∝RPM³, anchored to 1350) until read here — enter a reading to override the estimate for that speed everywhere.
+        </div>
       </TestCard>
 
       <TestCard n={4} title="Heater flow-switch test (accidental interlock)" badge={badgeFor(prov("pending"))}

@@ -305,18 +305,18 @@ export default function DailyOperation({ config, update, now }) {
       <Card title="Timing Control Center — the two Intermatics">
         <div style={{ display: "flex", gap: 22, alignItems: "flex-start", flexWrap: "wrap" }}>
           <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}>
+            <div style={{ font: cond(14) }}>Left — main power bus</div>
+            <IntermaticDial C={C} window={{ start: "", end: "" }} nowMinutes={now} size={200} dogsIn={false} lever={config.leftTimer.lever}
+              caption={<>master disconnect · tripper-less · lever {config.leftTimer.lever.toUpperCase()}</>}
+              onToggleLever={() => update((d) => { d.leftTimer.lever = d.leftTimer.lever === "on" ? "off" : "on"; })} />
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}>
             <div style={{ font: cond(14) }}>Right — Polaris booster</div>
             <IntermaticDial C={C} window={{ start: bt.start, end: bt.end }} nowMinutes={now} size={200} dogsIn={bt.dogsIn} lever={bt.lever} onToggleLever={toggleLever} />
             <label style={{ display: "flex", alignItems: "center", gap: 6, font: mono(11), color: C.faint, cursor: "pointer" }}>
               <input type="checkbox" checked={bt.dogsIn} onChange={(e) => update((d) => { d.booster.dogsIn = e.target.checked; })} />
               trip dogs installed
             </label>
-          </div>
-          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}>
-            <div style={{ font: cond(14) }}>Left — main power bus</div>
-            <IntermaticDial C={C} window={{ start: "", end: "" }} nowMinutes={now} size={200} dogsIn={false} lever={config.leftTimer.lever}
-              caption={<>master disconnect · tripper-less · lever {config.leftTimer.lever.toUpperCase()}</>}
-              onToggleLever={() => update((d) => { d.leftTimer.lever = d.leftTimer.lever === "on" ? "off" : "on"; })} />
           </div>
           <div style={{ font: mono(12), color: C.faint, lineHeight: 1.6, flex: "1 1 240px", minWidth: 240 }}>
             Silver rim tabs are the trip dogs (outer ON, inner OFF); green = switch closed; grey triangle = now. The slider is the manual lever — tap it.

@@ -6,7 +6,9 @@ valves to see what actually flows where, and follow the documented procedures fo
 heating the pool or spa.
 
 Full equipment survey, hydraulic topology, control architecture, and the open
-field-checklist live in [POOL-SYSTEM-HANDOFF.md](POOL-SYSTEM-HANDOFF.md).
+field-checklist live in [POOL-SYSTEM-HANDOFF.md](POOL-SYSTEM-HANDOFF.md). The pump's
+[IntelliFlo VS+SVRS owner's manual](reference/IntelliFlo-VS-SVRS-Owners-Manual.pdf)
+is kept in `reference/` (its menu tree drives the IntelliFlo tab's practice emulator).
 
 ## Developing
 

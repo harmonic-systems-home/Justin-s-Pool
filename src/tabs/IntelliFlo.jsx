@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { C, mono, cond, Card, Badge, NumField, TimeField } from "../ui.jsx";
-import { fmtWindow, toRealBand } from "../schedule.js";
+import { fmtWindow, toRealBand, spans, toMinutes } from "../schedule.js";
 import { wattsAt } from "../energy.js";
 
 // The pump's complete configuration register — the mirror of the device, every
@@ -78,6 +78,10 @@ export default function IntelliFlo({ config, update }) {
       </Card>
 
       <Card title="Operating procedures">
+        <div style={{ font: mono(10.5), marginBottom: 8, lineHeight: 1.5 }}>
+          <a href="reference/IntelliFlo-VS-SVRS-Owners-Manual.pdf" target="_blank" rel="noopener" style={{ color: C.flow, fontWeight: 600 }}>↗ IntelliFlo VS+SVRS owner's manual (PDF)</a>
+          <span style={{ color: C.faint }}> — the emulator's menu tree is built from it.</span>
+        </div>
         <Proc title="1 · INSPECT (read-only, safe)" body={[
           "Menu opens the menu (pump must be stopped; pressing Menu stops it).",
           "Select (✗) drills into an item. Escape (←) backs up / cancels.",
@@ -114,97 +118,123 @@ function Proc({ title, body, warn }) {
 }
 
 // ── Practice emulator ───────────────────────────────────────────
-// A compact simulation of the IntelliFlo keypad so the re-arm habit (the mistake
-// that actually costs) can be rehearsed. Menu depth is a skeleton sourced from
-// the captured nav notes; unphotographed branches mark themselves UNVERIFIED so
-// the emulator is honest about its own fidelity (fill it in from inspection).
-
-const MENU = ["Running Speeds", "External Control", "Priming", "Anti-Freeze", "Time / Clock"];
+// A faithful IntelliFlo VS+SVRS keypad simulation. The menu tree below is taken
+// from the owner's manual (linked above); Speed 1–8 is populated from this pump's
+// real register, the other branches show the manual's factory defaults (the real
+// pad's values differ — verify on inspection). The point is to rehearse the
+// re-arm habit (the mistake that actually costs) before touching the real pad.
 
 function Emulator({ config }) {
   const slots = config.pump.slots || [];
-  const init = { running: true, label: "Running Schedule", view: "run", menuIdx: 0, speedIdx: 0, msg: "", visitedMenu: false, saved: false };
+  const slotByNum = (n) => slots.find((s) => s.slot === n);
+  const modeWord = (s) => (s.mode === "Egg timer" ? "Egg Timer" : s.mode);
+  const speedChildren = slots.map((s) => ({
+    name: `Speed ${s.slot}`, kind: "speed", modeWord: modeWord(s),
+    value: s.mode === "Disabled" ? "Disabled" : s.mode === "Egg timer" ? `${s.rpm} · ${s.durationMin}m` : s.mode === "Manual" ? `${s.rpm} RPM` : `${s.rpm}  ${s.start}–${s.end}`,
+  }));
+  const TREE = [
+    { name: "Settings", children: [
+      { name: "Pump Address", value: "1" }, { name: "Set Time", value: "12:00 AM" },
+      { name: "Set AM/PM", value: "AM/PM" }, { name: "Temperature Unit", value: "°F" },
+      { name: "Screen Contrast", value: "3" }, { name: "Language", value: "English" },
+      { name: "Set Min Speed", value: "1100 RPM" }, { name: "Set Max Speed", value: "3450 RPM" },
+      { name: "Password", value: "Disabled" },
+    ] },
+    { name: "Speed 1-8", children: speedChildren },
+    { name: "Ext Control", children: [
+      { name: "Program 1", value: "1100 RPM" }, { name: "Program 2", value: "1500 RPM" },
+      { name: "Program 3", value: "2350 RPM" }, { name: "Program 4", value: "3110 RPM" },
+    ] },
+    { name: "Features", children: [
+      { name: "Time Out", value: "3 hours" }, { name: "Quick Clean", value: "3450 RPM · 10 min" },
+    ] },
+    { name: "Priming", children: [
+      { name: "Priming", value: "Enabled" }, { name: "Max Priming Time", value: "11 min" },
+      { name: "Primed Sensitivity", value: "1%" }, { name: "Priming Delay", value: "20 sec" },
+    ] },
+    { name: "Anti Freeze", children: [
+      { name: "Anti Freeze", value: "Enabled" }, { name: "Set Speed", value: "1100 RPM" },
+      { name: "Pump Temperature", value: "40°F" },
+    ] },
+  ];
+
+  const init = { running: true, label: "Running Schedule", stack: [], editing: false, saved: false, visitedMenu: false, msg: "" };
   const [st, setSt] = useState(init);
   const [drill, setDrill] = useState("free");
-  const set = (p) => setSt((s) => ({ ...s, msg: "", ...p }));
+  const upd = (fn) => setSt((s) => { const n = { ...s, msg: "" }; fn(n); return n; });
 
   const press = (k) => {
-    const s = st;
     if (k === "reset") return setSt(init);
-    if (k === "menu") return set({ running: false, view: "menu", menuIdx: 0, visitedMenu: true, label: "" });
-    if (k === "startstop") {
-      if (s.running) return set({ running: false, view: "run", label: "— STOPPED —" });
-      return set({ running: true, view: "run", label: "Running Schedule", saved: false });
-    }
-    if (k === "quick") return set({ running: true, view: "run", label: "Quick Clean (temp)" });
-    if (k === "timeout") return set({ msg: "Time Out — paused, auto-resumes" });
-    if (k.startsWith("speed")) {
-      const n = +k.slice(5);
-      return set({ running: true, view: "run", label: `Running Speed ${n}${n === 3 ? " · egg 3:10" : ""}` });
-    }
+    if (k === "menu") return upd((n) => { n.running = false; n.stack = [{ items: TREE, idx: 0 }]; n.editing = false; n.visitedMenu = true; n.label = ""; });
+    if (k === "startstop") return upd((n) => { if (n.running) { n.running = false; n.stack = []; n.editing = false; n.label = "— STOPPED —"; } else { n.running = true; n.stack = []; n.editing = false; n.label = "Running Schedule"; n.saved = false; } });
+    if (k === "quick") return upd((n) => { n.running = true; n.stack = []; n.editing = false; n.label = "Quick Clean"; });
+    if (k === "timeout") return upd((n) => { n.msg = "Time Out — paused, auto-resumes"; });
+    if (k.startsWith("speed")) { const num = +k.slice(5); return upd((n) => { n.running = true; n.stack = []; n.editing = false; n.label = `Running Speed ${num}${num === 3 ? " · egg 3:10" : ""}`; }); }
     if (k === "up" || k === "down" || k === "left" || k === "right") {
-      const d = (k === "up" || k === "left") ? -1 : 1;
-      if (s.view === "menu") return set({ menuIdx: (s.menuIdx + d + MENU.length) % MENU.length });
-      if (s.view === "speeds") return set({ speedIdx: (s.speedIdx + d + slots.length) % slots.length });
-      return;
+      return upd((n) => {
+        if (n.editing) { n.msg = "(▲▼ change digit · ◀▶ move cursor)"; return; }
+        if (!n.stack.length) return;
+        const lvl = n.stack[n.stack.length - 1]; const d = (k === "up" || k === "left") ? -1 : 1;
+        n.stack = n.stack.slice(0, -1).concat({ ...lvl, idx: (lvl.idx + d + lvl.items.length) % lvl.items.length });
+      });
     }
     if (k === "select") {
-      if (s.view === "menu") {
-        if (MENU[s.menuIdx] === "Running Speeds") return set({ view: "speeds", speedIdx: 0 });
-        return set({ msg: "UNVERIFIED — photograph this screen on the real pump" });
-      }
-      if (s.view === "speeds") return set({ view: "speed" });
-      return set({ msg: "UNVERIFIED — photograph this screen" });
+      return upd((n) => {
+        if (!n.stack.length) return; const lvl = n.stack[n.stack.length - 1]; const c = lvl.items[lvl.idx];
+        if (n.editing) return; if (c.children) n.stack = n.stack.concat({ items: c.children, idx: 0 }); else n.editing = true;
+      });
     }
     if (k === "escape") {
-      if (s.view === "speed") return set({ view: "speeds" });
-      if (s.view === "speeds") return set({ view: "menu" });
-      if (s.view === "menu") return set({ msg: "(already at menu top — press Start/Stop to exit + re-arm)" });
-      return;
+      return upd((n) => {
+        if (n.editing) { n.editing = false; return; }
+        if (n.stack.length) { n.stack = n.stack.slice(0, -1); if (!n.stack.length) { n.running = false; n.label = "— STOPPED —"; } }
+      });
     }
-    if (k === "enter") {
-      if (s.view === "speed") return set({ msg: "Saved.", saved: true });
-      return set({ msg: "Key Error! Key not in use!" });
-    }
+    if (k === "enter") return upd((n) => { if (n.editing) { n.saved = true; n.editing = false; n.msg = "Saved."; } else n.msg = "Key Error! Key not in use!"; });
   };
 
-  // LCD content
-  let l1 = "", l2 = "";
-  if (st.view === "run") { l1 = st.running ? st.label : "— STOPPED —"; l2 = st.running ? "" : "press Start/Stop to re-arm"; }
-  else if (st.view === "menu") { l1 = `MENU ▸ ${MENU[st.menuIdx]}`; l2 = "pump STOPPED"; }
-  else if (st.view === "speeds") { l1 = `SPEEDS ▸ Speed ${slots[st.speedIdx]?.slot}`; l2 = "pump STOPPED"; }
-  else if (st.view === "speed") { const sp = slots[st.speedIdx]; l1 = `Speed ${sp?.slot}: ${sp?.mode}`; l2 = sp?.mode === "Schedule" ? `${sp.rpm} ${sp.start}–${sp.end}` : sp?.mode === "Egg timer" ? `${sp.rpm} · ${sp.durationMin}m` : sp?.mode === "Manual" ? `${sp.rpm} RPM` : "off"; }
-  if (st.msg) l2 = st.msg;
-  const armed = st.running && st.label === "Running Schedule";
+  // pump-clock time (the pad clock is offset from real)
+  const off = config.clocks?.intelliflo?.offsetMin || 0;
+  const _now = new Date();
+  const pcMin = (((_now.getHours() * 60 + _now.getMinutes()) + off) % 1440 + 1440) % 1440;
+  const pcH = Math.floor(pcMin / 60), pcTime = `${(pcH % 12) || 12}:${String(pcMin % 60).padStart(2, "0")}${pcH < 12 ? "a" : "p"}`;
+  const activeSched = () => slots.find((x) => x.mode === "Schedule" && spans({ start: x.start, end: x.end }).some(([a, b]) => pcMin >= a && pcMin < b))?.slot;
+
+  const inMenu = st.stack.length > 0;
+  const armed = st.running && !inMenu && st.label === "Running Schedule";
+
+  // Running-screen fields (manual layout: SVRS/time · RPM · countdown/Watts · feature)
+  let rRpm = 0, rFeat = "";
+  if (st.running && !inMenu) {
+    const m = /Speed (\d)/.exec(st.label);
+    if (m) { const n = +m[1]; rRpm = slotByNum(n)?.rpm || 0; rFeat = `Running Speed ${n}`; }
+    else if (st.label.includes("Quick")) { rRpm = 3450; rFeat = "Quick Clean"; }
+    else { const n = activeSched(); rRpm = slotByNum(n)?.rpm || (slots[0]?.rpm || 0); rFeat = n ? `Running Speed ${n}` : "Running Schedule"; }
+  }
+  const rWatts = rRpm ? Math.round(wattsAt(rRpm, config.pump)) : 0;
+
+  // Menu-screen fields
+  const lvl = inMenu ? st.stack[st.stack.length - 1] : null;
+  const cur = lvl ? lvl.items[lvl.idx] : null;
+  const crumb = st.stack.length > 1 ? st.stack[st.stack.length - 2].items[st.stack[st.stack.length - 2].idx].name : "MENU";
 
   const drills = {
-    free: { label: "Free play", check: null },
-    inspect: { label: "Inspect Speed 5, then leave it armed", ok: (s) => s.visitedMenu && s.running && s.label === "Running Schedule", hint: "Menu → Running Speeds → Speed 5 → Escape out → Start/Stop to re-arm." },
-    heat: { label: "Start a Speed 3 heat run", ok: (s) => s.running && s.label.includes("Speed 3"), hint: "Press Speed 3, then Start." },
-    edit: { label: "Change a setting, then re-arm (R5 habit)", ok: (s) => s.saved && s.running && s.label === "Running Schedule", hint: "Menu → drill in → Enter (save) → Escape → Start/Stop. The re-arm is the graded step." },
+    free: { label: "Free play" },
+    inspect: { label: "Inspect Speed 5, then leave it armed", ok: (s) => s.visitedMenu && s.running && !s.stack.length && s.label === "Running Schedule", hint: "Menu → ▼ to 'Speed 1-8' → Select → ▼ to Speed 5 → Escape twice (out of the menu) → Start/Stop to re-arm." },
+    heat: { label: "Start a Speed 3 heat run", ok: (s) => s.running && s.label.includes("Speed 3"), hint: "Press the Speed 3 button (it ramps up)." },
+    edit: { label: "Change a setting, then re-arm (R5 habit)", ok: (s) => s.saved && s.running && !s.stack.length && s.label === "Running Schedule", hint: "Menu → Select (opens Settings) → Select on 'Pump Address' to edit → Enter to save → Escape twice → Start/Stop. The re-arm is the graded step." },
   };
-  const d = drills[drill];
-  const pass = d.ok ? d.ok(st) : null;
+  const dr = drills[drill];
+  const pass = dr.ok ? dr.ok(st) : null;
 
-  // Panel primitives, matching the real IntelliFlo faceplate: rounded squares for
-  // Speed / Select / Escape / Menu / Enter, circles for the bottom row.
   const Sq = ({ k, children, h = 40 }) => (
-    <button onClick={() => press(k)} style={{
-      font: mono(9.5, 600), height: h, borderRadius: 8, cursor: "pointer", lineHeight: 1.1,
-      border: `1.5px solid ${C.pipe}`, background: "#fff", color: C.ink, padding: "0 4px",
-    }}>{children}</button>
+    <button onClick={() => press(k)} style={{ font: mono(9.5, 600), height: h, borderRadius: 8, cursor: "pointer", lineHeight: 1.1, border: `1.5px solid ${C.pipe}`, background: "#fff", color: C.ink, padding: "0 4px" }}>{children}</button>
   );
   const Arr = ({ k, children }) => (
-    <button onClick={() => press(k)} style={{
-      width: 36, height: 32, borderRadius: 7, cursor: "pointer", font: mono(12, 600),
-      border: `1.5px solid ${C.pipe}`, background: "#fff", color: C.ink, padding: 0,
-    }}>{children}</button>
+    <button onClick={() => press(k)} style={{ width: 36, height: 32, borderRadius: 7, cursor: "pointer", font: mono(12, 600), border: `1.5px solid ${C.pipe}`, background: "#fff", color: C.ink, padding: 0 }}>{children}</button>
   );
   const Circ = ({ k, children, tone }) => (
-    <button onClick={() => press(k)} style={{
-      width: 60, height: 60, borderRadius: "50%", cursor: "pointer", font: mono(9.5, 600), lineHeight: 1.1,
-      border: `1.5px solid ${tone || C.pipe}`, background: "#fff", color: tone || C.ink,
-    }}>{children}</button>
+    <button onClick={() => press(k)} style={{ width: 60, height: 60, borderRadius: "50%", cursor: "pointer", font: mono(9.5, 600), lineHeight: 1.1, border: `1.5px solid ${tone || C.pipe}`, background: "#fff", color: tone || C.ink }}>{children}</button>
   );
   const Led = ({ on }) => <span style={{ width: 7, height: 7, borderRadius: "50%", background: on ? "#4ADE9E" : "#cdd6d3", boxShadow: on ? "0 0 5px #4ADE9E" : "none", display: "inline-block" }} />;
 
@@ -213,30 +243,52 @@ function Emulator({ config }) {
       <div style={{ display: "flex", gap: 18, flexWrap: "wrap", alignItems: "flex-start" }}>
         <div style={{ width: 320, maxWidth: "100%", background: "#EDEFEE", border: `1px solid ${C.pipe}`, borderRadius: 14, padding: 12 }}>
           {/* LCD */}
-          <div style={{ background: "#0E2A22", border: `2px solid ${C.valve}`, borderRadius: 8, padding: "12px 14px", fontFamily: "'IBM Plex Mono', monospace" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
-              <span style={{ width: 9, height: 9, borderRadius: "50%", background: st.running ? "#4ADE9E" : "#7a3", boxShadow: st.running ? "0 0 6px #4ADE9E" : "none", opacity: st.running ? 1 : 0.3 }} />
-              <span style={{ font: mono(9, 600), color: "#6ea", letterSpacing: "0.08em" }}>{st.running ? "RUNNING" : "STOPPED"}</span>
-            </div>
-            <div style={{ font: mono(14, 600), color: "#B8F5D8", minHeight: 20 }}>{l1}</div>
-            <div style={{ font: mono(11), color: st.view !== "run" || !st.running ? "#F3B04B" : "#7fcaa8", minHeight: 16 }}>{l2}&nbsp;</div>
+          <div style={{ background: "#0E2A22", border: `2px solid ${C.valve}`, borderRadius: 8, padding: "10px 14px", fontFamily: "'IBM Plex Mono', monospace", minHeight: 92 }}>
+            {st.running && !inMenu ? (
+              <>
+                <div style={{ display: "flex", justifyContent: "space-between", font: mono(11, 600), color: "#7fcaa8" }}><span>SVRS</span><span>{pcTime}</span></div>
+                <div style={{ font: mono(24, 600), color: "#B8F5D8", lineHeight: 1.15, margin: "2px 0" }}>{rRpm} RPM</div>
+                <div style={{ display: "flex", justifyContent: "space-between", font: mono(10), color: "#7fcaa8" }}><span>T 0.00</span><span>{rWatts} WATTS</span></div>
+                <div style={{ font: mono(11, 600), color: "#B8F5D8" }}>{rFeat}</div>
+              </>
+            ) : inMenu ? (
+              cur?.kind === "speed" ? (
+                <>
+                  <div style={{ display: "flex", justifyContent: "space-between", font: mono(11, 600), color: "#7fcaa8" }}><span>{cur.name}</span><span>{pcTime}</span></div>
+                  <div style={{ font: mono(24, 600), color: "#B8F5D8", lineHeight: 1.15, margin: "2px 0" }}>{cur.modeWord}</div>
+                  <div style={{ font: mono(10), color: "#7fcaa8" }}>Mode · {cur.value}</div>
+                </>
+              ) : (
+                <>
+                  <div style={{ display: "flex", justifyContent: "space-between", font: mono(10, 600), color: "#7fcaa8" }}><span>{crumb}{st.editing ? "  [EDIT]" : ""}</span><span>{pcTime}</span></div>
+                  <div style={{ font: mono(16, 600), color: "#B8F5D8", lineHeight: 1.2, margin: "3px 0" }}>{cur?.name}</div>
+                  <div style={{ font: mono(11), color: st.editing ? "#F3B04B" : "#7fcaa8" }}>{cur?.value != null ? `${st.editing ? "▸ " : "= "}${cur.value}` : cur?.children ? "Select ✗ to open ▸" : ""}{st.msg ? `   ${st.msg}` : ""}</div>
+                </>
+              )
+            ) : (
+              <>
+                <div style={{ font: mono(9, 600), color: "#F3B04B", letterSpacing: "0.08em", marginBottom: 6 }}>PUMP STOPPED</div>
+                <div style={{ font: mono(20, 600), color: "#B8F5D8" }}>— STOPPED —</div>
+                <div style={{ font: mono(11), color: "#F3B04B" }}>press Start/Stop to re-arm</div>
+              </>
+            )}
           </div>
 
-          {/* Speed row (rounded squares), each with an LED above */}
+          {/* Speed row + LEDs */}
           <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 8, marginTop: 12, justifyItems: "center" }}>
-            {[1, 2, 3, 4].map((n) => <Led key={n} on={st.running && st.label.includes(`Speed ${n}`)} />)}
+            {[1, 2, 3, 4].map((n) => <Led key={n} on={st.running && !inMenu && st.label.includes(`Speed ${n}`)} />)}
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 8, marginTop: 3 }}>
             {[1, 2, 3, 4].map((n) => <Sq key={n} k={`speed${n}`} h={44}>Speed<br />{n}</Sq>)}
           </div>
 
-          {/* Select (left) / Escape (right) */}
+          {/* Select / Escape */}
           <div style={{ display: "flex", justifyContent: "space-between", marginTop: 12 }}>
             <span style={{ width: 66 }}><Sq k="select" h={44}>Select<br />✗</Sq></span>
             <span style={{ width: 66 }}><Sq k="escape" h={44}>Escape<br />←</Sq></span>
           </div>
 
-          {/* status icons · D-pad cross with Enter centered · Menu */}
+          {/* status LEDs · D-pad cross (Enter centered) · Menu */}
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 14 }}>
             <div style={{ display: "flex", flexDirection: "column", gap: 12, alignItems: "center", font: mono(13) }}>
               <span style={{ display: "flex", alignItems: "center", gap: 5 }}>✓ <Led on={st.running} /></span>
@@ -245,20 +297,23 @@ function Emulator({ config }) {
             </div>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 36px)", gridTemplateRows: "repeat(3, 32px)", gap: 5, justifyItems: "center", alignItems: "center" }}>
               <span /><Arr k="up">▲</Arr><span />
-              <Arr k="left">◀</Arr><button onClick={() => press("enter")} style={{ width: 36, height: 32, borderRadius: 7, cursor: "pointer", font: mono(9, 600), border: `1.5px solid ${C.pipe}`, background: "#fff", color: C.ink, padding: 0 }}>⏎</button><Arr k="right">▶</Arr>
+              <Arr k="left">◀</Arr><button onClick={() => press("enter")} title="Enter" style={{ width: 36, height: 32, borderRadius: 7, cursor: "pointer", font: mono(17, 600), border: `1.5px solid ${C.pipe}`, background: "#fff", color: C.ink, padding: 0, display: "flex", alignItems: "center", justifyContent: "center", lineHeight: 1 }}>⏎</button><Arr k="right">▶</Arr>
               <span /><Arr k="down">▼</Arr><span />
             </div>
             <span style={{ width: 56 }}><Sq k="menu" h={50}>☰<br />Menu</Sq></span>
           </div>
 
-          {/* bottom circles, each with an LED above */}
+          {/* bottom circles + LEDs */}
           <div style={{ display: "flex", justifyContent: "space-between", marginTop: 14, padding: "0 2px" }}>
-            {[st.running && st.label.includes("Quick"), false, st.running, false].map((on, i) => <Led key={i} on={on} />)}
+            {[st.running && !inMenu && st.label.includes("Quick"), false, st.running, false].map((on, i) => <Led key={i} on={on} />)}
           </div>
           <div style={{ display: "flex", justifyContent: "space-between", marginTop: 3 }}>
             <Circ k="quick">Quick<br />Clean</Circ>
             <Circ k="timeout">Time<br />Out</Circ>
-            <Circ k="startstop" tone={st.running ? C.warn : C.ok}>{st.running ? "Stop" : "Run"}</Circ>
+            <Circ k="startstop" tone={st.running ? C.warn : C.ok}>
+              <span style={{ display: "block", color: C.ok, font: mono(9, st.running ? 500 : 700) }}>Start</span>
+              <span style={{ display: "block", color: C.warn, font: mono(12, st.running ? 700 : 500) }}>Stop</span>
+            </Circ>
             <Circ k="reset">Reset</Circ>
           </div>
         </div>
@@ -268,9 +323,9 @@ function Emulator({ config }) {
           <select value={drill} onChange={(e) => setDrill(e.target.value)} style={{ font: mono(12), padding: "6px 8px", border: `1.5px solid ${C.timer}`, borderRadius: 8, color: C.ink, width: "100%", boxSizing: "border-box" }}>
             {Object.entries(drills).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
           </select>
-          {d.ok && (
+          {dr.ok && (
             <div style={{ marginTop: 8, font: mono(11.5), lineHeight: 1.5 }}>
-              <div style={{ color: C.faint }}>{d.hint}</div>
+              <div style={{ color: C.faint }}>{dr.hint}</div>
               <div style={{ marginTop: 6, font: mono(12, 700), color: pass ? C.ok : C.faint }}>{pass ? "✓ PASS — display reads Running Schedule" : "…not complete"}</div>
             </div>
           )}
@@ -278,7 +333,7 @@ function Emulator({ config }) {
             {armed ? "Armed: schedule is running." : "⚠ Not armed — the pump is stopped or mid-menu. On the real pad this means no filtration until re-armed (Start/Stop)."}
           </div>
           <div style={{ marginTop: 10, font: mono(10), color: C.faint, lineHeight: 1.5 }}>
-            Menu depth is a skeleton from the captured nav notes; branches marked <b>UNVERIFIED</b> need an inspection photo. Firmware may differ — when the real pump diverges, photograph it (that's a menu-tree bug report).
+            Menu tree from the owner's manual (linked above). Speed 1–8 shows this pump's real register; other branches show the manual's factory defaults — the real pad's values differ, so verify on inspection. Firmware may vary; when the real pump diverges, photograph it.
           </div>
         </div>
       </div>

@@ -11,6 +11,7 @@ import Costs from "./tabs/Costs.jsx";
 import WhatIf from "./tabs/WhatIf.jsx";
 import Commissioning from "./tabs/Commissioning.jsx";
 import History from "./tabs/History.jsx";
+import Photos from "./tabs/Photos.jsx";
 
 // ─────────────────────────────────────────────────────────────
 // JUSTIN'S POOL — tabbed system map (v4)
@@ -29,6 +30,7 @@ const TABS = [
   { id: "whatif", label: "What If", Comp: WhatIf },
   { id: "commissioning", label: "Commissioning", Comp: Commissioning },
   { id: "history", label: "History", Comp: History },
+  { id: "photos", label: "Photos", Comp: Photos },
 ];
 
 export default function App() {
@@ -76,10 +78,20 @@ export default function App() {
 
   const Active = TABS.find((t) => t.id === tab)?.Comp ?? DailyOperation;
 
-  const chip = (on) => ({
-    font: mono(12.5, 600), padding: "8px 13px", borderRadius: 9, cursor: "pointer",
-    border: `2px solid ${on ? C.ink : C.pipe}`, background: on ? C.ink : "#fff",
-    color: on ? "#fff" : C.faint, whiteSpace: "nowrap",
+  // Browser-tab styling — deliberately unlike the pill-shaped procedure buttons
+  // on the Daily schematic, so the two never read as the same control. Folder
+  // tabs: rounded top only, sitting on a shared baseline, active one raised in
+  // white with a colored top edge and its baseline notched away.
+  const tabStyle = (on) => ({
+    font: mono(12, on ? 700 : 600),
+    padding: "7px 14px 8px", cursor: "pointer", whiteSpace: "nowrap",
+    borderRadius: "9px 9px 0 0",
+    border: `1px solid ${on ? C.pipe : "transparent"}`,
+    borderTop: `3px solid ${on ? C.flow : "transparent"}`,
+    borderBottom: on ? "1px solid #fff" : `1px solid transparent`,
+    background: on ? "#fff" : "transparent",
+    color: on ? C.ink : C.faint,
+    marginBottom: -1,
   });
   const tool = { font: mono(11, 600), padding: "6px 10px", borderRadius: 8, cursor: "pointer", border: `1.5px solid ${C.pipe}`, background: "#fff", color: C.faint };
 
@@ -101,10 +113,10 @@ export default function App() {
 
       <div style={{ marginTop: 10 }}><SyncPanel config={config} setConfig={setConfig} onAuthChange={setAuthed} /></div>
 
-      {/* tab bar */}
-      <div style={{ display: "flex", gap: 7, flexWrap: "wrap", margin: "4px 0 10px" }}>
+      {/* tab bar — browser-style folder tabs on a shared baseline */}
+      <div style={{ display: "flex", gap: 3, flexWrap: "wrap", alignItems: "flex-end", margin: "6px 0 10px", borderBottom: `1px solid ${C.pipe}`, paddingLeft: 2 }}>
         {TABS.map((t) => (
-          <button key={t.id} style={chip(t.id === tab)} onClick={() => setTab(t.id)}>{t.label}</button>
+          <button key={t.id} style={tabStyle(t.id === tab)} onClick={() => setTab(t.id)}>{t.label}</button>
         ))}
       </div>
 

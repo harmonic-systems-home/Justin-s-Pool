@@ -1,0 +1,28 @@
+#!/usr/bin/env bash
+# Block commits of photos that still carry GPS/location metadata (PUBLIC repo).
+# Activate once per clone:  git config core.hooksPath .githooks
+set -euo pipefail
+
+staged=$(git diff --cached --name-only --diff-filter=ACM \
+  | grep -Ei '^photos/.*\.(jpg|jpeg|png|heic|webp)$' || true)
+[ -z "$staged" ] && exit 0
+
+if ! command -v exiftool >/dev/null 2>&1; then
+  echo "✖ pre-commit: exiftool not installed — can't verify photos are location-free." >&2
+  echo "  Install (brew install exiftool) or run scripts/strip-photo-exif.sh, then retry." >&2
+  exit 1
+fi
+
+bad=0
+while IFS= read -r f; do
+  [ -z "$f" ] && continue
+  if exiftool -gps:all -a -s "$f" | grep -qi gps; then
+    echo "✖ $f contains GPS metadata." >&2
+    bad=1
+  fi
+done <<< "$staged"
+
+if [ "$bad" -ne 0 ]; then
+  echo "Blocked: run ./scripts/strip-photo-exif.sh, re-stage the photos, and commit again." >&2
+  exit 1
+fi

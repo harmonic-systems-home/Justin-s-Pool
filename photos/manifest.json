@@ -1,0 +1,28 @@
+{
+  "photos": [
+    {
+      "file": "Pool System Annotated - Top Down.jpeg",
+      "caption": "Pad plumbing, top-down — annotated flow paths",
+      "category": "Annotated system maps",
+      "date": "2026-07-25"
+    },
+    {
+      "file": "Pool System Annotated - Elevation.jpeg",
+      "caption": "Pad elevation — annotated equipment + return trunk",
+      "category": "Annotated system maps",
+      "date": "2026-07-25"
+    },
+    {
+      "file": "Spa Valves.jpeg",
+      "caption": "Spa deck valve pair (suction + return select)",
+      "category": "Deck & valves",
+      "date": "2026-07-25"
+    },
+    {
+      "file": "skimmer-basket-full-historical.jpeg",
+      "caption": "Skimmer basket, full — pre-surface-robot era; the upstream cause of the founding causal chain (test 15)",
+      "category": "Historical",
+      "date": "2026-07-19"
+    }
+  ]
+}

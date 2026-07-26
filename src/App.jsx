@@ -7,6 +7,7 @@ import SyncPanel from "./SyncPanel.jsx";
 import DailyOperation from "./tabs/DailyOperation.jsx";
 import Maintenance from "./tabs/Maintenance.jsx";
 import ServiceVisits from "./tabs/ServiceVisits.jsx";
+import IntelliFlo from "./tabs/IntelliFlo.jsx";
 import PoolDesign from "./tabs/PoolDesign.jsx";
 import Costs from "./tabs/Costs.jsx";
 import WhatIf from "./tabs/WhatIf.jsx";
@@ -28,6 +29,7 @@ const TABS = [
   { id: "maintenance", label: "Maintenance", Comp: Maintenance },
   { id: "service", label: "Service Visits", Comp: ServiceVisits },
   { id: "design", label: "Pool Design", Comp: PoolDesign },
+  { id: "intelliflo", label: "IntelliFlo", Comp: IntelliFlo },
   { id: "costs", label: "Costs", Comp: Costs },
   { id: "whatif", label: "What If", Comp: WhatIf },
   { id: "commissioning", label: "Commissioning", Comp: Commissioning },

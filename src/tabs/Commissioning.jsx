@@ -270,8 +270,8 @@ export default function Commissioning({ config, update }) {
       <Divider>Remediation (fixes, not tests — check off with date + photo ref)</Divider>
 
       <div style={{ background: "#fff", border: `1px solid ${C.pipe}`, borderRadius: 12, padding: "6px 14px 12px" }}>
-        <RemediationRow config={config} update={update} id="R1" title="R1 · Cap the orphan solar stub"
-          body="Glued PVC cap (~$2, primer + cement). Defuses the open-pipe dump hazard on the old solar diverter — until capped, any rotation of that valve (bumped override lever, stray SunTouch valve command) discharges pool water at 45+ GPM, unattended. Capped, the worst case is a harmless dead-head." />
+        <RemediationRow config={config} update={update} id="R1" title="R1 · Cap the orphan solar stub(s)"
+          body="Glued PVC cap (~$2). Defuses the open-pipe dump hazard on the old solar diverter — until capped, any rotation of that valve (bumped lever, stray SunTouch command) discharges pool water at 45+ GPM. ALSO verify the SECOND solar remnant (7/26): the capped-riser manifold at the pad's lower-left where the corrugated solar flex hoses met hard pipe — confirm its cap is GLUED (not a friction plug) and trace which hard pipe it tees into: live-but-capped → record in topology; fully orphaned → subtraction candidate (cut out the assembly + hoses to open that corner)." />
         <RemediationRow config={config} update={update} id="R2" title="R2 · Verify + lock the solar diverter in bypass"
           body="Confirm current position = bypass (it must be — pump→heater flows today), then disable the actuator: unplug its cable at the SunTouch end and/or use the actuator's manual toggle. Photograph the final state." />
         <RemediationRow config={config} update={update} id="R3" title="R3 · Paint-pen the pad"
@@ -284,6 +284,17 @@ export default function Commissioning({ config, update }) {
           onClick={() => { if (confirm("Zero all four pad-clock offsets? Do this only after R5 has actually set the clocks.")) update((d) => { Object.keys(d.clocks).forEach((k) => { d.clocks[k].offsetMin = 0; d.clocks[k].prov = prov("measured", today(), "set to real time (R5)"); }); }); }}>
           ✓ zero all clock offsets (after R5 sets the clocks)
         </div>
+      </div>
+
+      <Divider>Monitoring (M-series — YoLink LoRa; Justin's hub + account, Rick as shared app user)</Divider>
+
+      <div style={{ background: "#fff", border: `1px solid ${C.pipe}`, borderRadius: 12, padding: "6px 14px 12px" }}>
+        <RemediationRow config={config} update={update} id="M1" title="M1 · Heater-runaway alarm (~$50)"
+          body="Temp probe strapped to the HEATER OUTLET PIPE (not the cabinet — sun-soaked sheet metal is slow/confounded), under scrap foam insulation so it reads pipe temp. Firing → outlet 10–20 °F above pool within a minute. Native alert: YoLink Alarm Strategy, high threshold ~95 °F, long re-alert → one push per heat session = 'heater is firing now'; an UNexpected ping is the alarm (context supplies the time filter). Bonus: the temp history IS the heater-runtime log → real gas-session data for Costs. Fallback (deliberately unused): bridge into Rick's HA for arbitrary logic/SMS — but that threads Rick's infra into Justin's alarm path (anti-succession); escalate only if the native alert proves noisy." />
+        <RemediationRow config={config} update={update} id="M2" title="M2 · Pool-gate sensor (~$15) — safety, highest value"
+          body="YoLink door sensor on the safety-fence gate; alert on open and on left-ajar. Small kids in the household → this is the highest-value item on the list." />
+        <RemediationRow config={config} update={update} id="M3" title="M3 · Pad leak sensor (~$15)"
+          body="Under the pump/filter cluster; a failing shaft seal or cracked fitting shows up as a puddle long before a water bill does." />
       </div>
     </div>
   );

@@ -8,12 +8,12 @@ import { C, mono, Card, TextField } from "../ui.jsx";
 const WORK = [["chemicals", "chemicals"], ["brushed", "brushed"], ["baskets", "baskets"], ["cartridge", "cartridge cleaned"], ["other", "other"]];
 
 export default function ServiceVisits({ config, update }) {
-  const [visit, setVisit] = useState({ date: "", work: {}, psi: "", notes: "", by: "" });
+  const [visit, setVisit] = useState({ date: "", work: {}, psi: "", rpm: "3030", notes: "", by: "" });
   const log = config.visitLog || [];
   const addVisit = () => {
     if (!visit.date && !visit.psi && !visit.notes && Object.values(visit.work).every((v) => !v)) return;
     update((d) => { d.visitLog.unshift({ ...visit, work: { ...visit.work } }); });
-    setVisit({ date: "", work: {}, psi: "", notes: "", by: "" });
+    setVisit({ date: "", work: {}, psi: "", rpm: "3030", notes: "", by: "" });
   };
   const delVisit = (i) => update((d) => { d.visitLog.splice(i, 1); });
   const workSummary = (w) => WORK.filter(([k]) => w && w[k]).map(([, l]) => l).join(", ") || "—";
@@ -31,7 +31,10 @@ export default function ServiceVisits({ config, update }) {
           ))}
           <label style={{ color: C.faint, display: "flex", gap: 4, alignItems: "center" }}>PSI
             <input value={visit.psi} onChange={(e) => setVisit((v) => ({ ...v, psi: e.target.value }))} placeholder="gauge"
-              style={{ width: 60, font: mono(11.5), padding: "5px 6px", border: `1.5px solid ${C.pipe}`, borderRadius: 7, color: C.ink }} /></label>
+              style={{ width: 56, font: mono(11.5), padding: "5px 6px", border: `1.5px solid ${C.pipe}`, borderRadius: 7, color: C.ink }} /></label>
+          <label style={{ color: C.faint, display: "flex", gap: 4, alignItems: "center" }}>@ RPM
+            <input value={visit.rpm} onChange={(e) => setVisit((v) => ({ ...v, rpm: e.target.value }))} placeholder="3030"
+              style={{ width: 56, font: mono(11.5), padding: "5px 6px", border: `1.5px solid ${C.pipe}`, borderRadius: 7, color: C.ink }} /></label>
           <input value={visit.by} onChange={(e) => setVisit((v) => ({ ...v, by: e.target.value }))} placeholder="who"
             style={{ width: 90, font: mono(11.5), padding: "5px 6px", border: `1.5px solid ${C.pipe}`, borderRadius: 7, color: C.ink }} />
         </div>
@@ -40,6 +43,7 @@ export default function ServiceVisits({ config, update }) {
           <button onClick={addVisit} style={{ font: mono(12, 600), padding: "7px 12px", borderRadius: 8, border: `2px solid ${C.ink}`, background: C.ink, color: "#fff", cursor: "pointer" }}>Log visit</button>
         </div>
         <div style={{ font: mono(10, 600), color: C.timer, marginTop: 8 }}>Sync (with the pool password) after logging so it's saved. See Cloud sync at the top.</div>
+        <div style={{ font: mono(10, 400), color: C.faint, marginTop: 4, lineHeight: 1.5 }}>PSI is uninterpretable without RPM on a variable-speed pump (pressure scales ~RPM²) — read it at <b>Speed 4 / 3030 RPM</b>, the standard reference condition (deck split, pad → POOL, ~1 min to stabilize).</div>
       </Card>
 
       <Card title={`Visit history${log.length ? ` (${log.length})` : ""}`}>
@@ -48,7 +52,7 @@ export default function ServiceVisits({ config, update }) {
           {log.map((e, i) => (
             <div key={i} style={{ display: "flex", gap: 10, alignItems: "baseline", font: mono(11.5), borderBottom: `1px solid ${C.pad}`, paddingBottom: 5 }}>
               <span style={{ color: C.timer, minWidth: 92 }}>{e.date || "—"}</span>
-              <span style={{ flex: 1, color: C.ink }}>{workSummary(e.work)}{e.psi ? ` · ${e.psi} psi` : ""}{e.notes ? ` · ${e.notes}` : ""}</span>
+              <span style={{ flex: 1, color: C.ink }}>{workSummary(e.work)}{e.psi ? ` · ${e.psi} psi @ ${e.rpm || "?"} RPM` : ""}{e.notes ? ` · ${e.notes}` : ""}</span>
               <span style={{ color: C.faint }}>{e.by}</span>
               <button onClick={() => delVisit(i)} title="remove" style={{ font: mono(11, 600), padding: "2px 7px", borderRadius: 6, border: `1.5px solid ${C.pipe}`, background: "#fff", color: C.faint, cursor: "pointer" }}>×</button>
             </div>

@@ -73,7 +73,7 @@ export default function Maintenance({ config, update, authed }) {
           <label style={{ font: mono(11.5), color: C.faint }}>Clean-baseline PSI <TextField value={m.filterCleanPSI} onChange={(v) => set("filterCleanPSI", v)} placeholder="e.g. 10 psi" /></label>
         </div>
         <div style={{ font: mono(11.5), color: C.ink, lineHeight: 1.6 }}>
-          Cleaning indicator = pressure-gauge rise above the clean baseline (≈ +8–10 psi → clean). A dirty cartridge cuts GPM everywhere downstream — the first symptom is the heater's flow switch refusing to fire (hence the waterfall workaround).
+          The gauge reads tank PSI, which scales ~RPM² and shifts with valve config — so a reading only counts at the <b>reference condition: Speed 4 @3030, deck SPLIT, pad → POOL, 1 min to stabilize</b>. Clean baseline = the PSI right after a cartridge cleaning at that condition; paint-pen it on the tank (<i>"CLEAN = __ PSI @3030"</i>). Clean the cartridge at <b>+8–10 psi over baseline</b>; REPLACE it (~2–4 yr) when the post-clean baseline creeps and won't return. Gauge sanity: the needle must rest at 0 with the pump off — a sticky gauge lies ($12 to replace). A dirty cartridge cuts GPM everywhere downstream — first symptom is the heater flow switch refusing to fire.
         </div>
       </Card>
 

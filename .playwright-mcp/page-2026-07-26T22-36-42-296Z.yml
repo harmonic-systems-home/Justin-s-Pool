@@ -1,0 +1,237 @@
+- generic [ref=f21e3]:
+  - generic [ref=f21e4]:
+    - generic [ref=f21e5]: JUSTIN'S POOL — SYSTEM MAP
+    - generic [ref=f21e6]: v4 · tabbed · surveyed July 2026
+    - generic [ref=f21e7]:
+      - button "↧ Export" [ref=f21e8] [cursor=pointer]
+      - button "↥ Import" [ref=f21e9] [cursor=pointer]
+      - button "Reset" [ref=f21e10] [cursor=pointer]
+  - generic [ref=f21e13]:
+    - generic [ref=f21e15]: Cloud sync
+    - generic [ref=f21e16]: not configured
+    - button "Settings" [ref=f21e18] [cursor=pointer]
+  - generic [ref=f21e19]:
+    - button "Daily Operation" [ref=f21e20] [cursor=pointer]
+    - button "Maintenance" [ref=f21e21] [cursor=pointer]
+    - button "Service Visits" [ref=f21e22] [cursor=pointer]
+    - button "Pool Design" [ref=f21e23] [cursor=pointer]
+    - button "IntelliFlo" [ref=f21e24] [cursor=pointer]
+    - button "Costs" [ref=f21e25] [cursor=pointer]
+    - button "What If" [ref=f21e26] [cursor=pointer]
+    - button "Commissioning" [ref=f21e27] [cursor=pointer]
+    - button "History" [ref=f21e28] [cursor=pointer]
+    - button "Photos" [ref=f21e29] [cursor=pointer]
+  - generic [ref=f21e30]:
+    - generic [ref=f21e31]:
+      - generic [ref=f21e32]:
+        - generic [ref=f21e33]: Speed register — all 8 slots
+        - generic [ref=f21e35]:
+          - text: verified vs device 2026-07-20
+          - button "mark verified today" [ref=f21e36] [cursor=pointer]
+      - table [ref=f21e38]:
+        - rowgroup [ref=f21e39]:
+          - row [ref=f21e40]:
+            - columnheader "#" [ref=f21e41]
+            - columnheader "Mode" [ref=f21e42]
+            - columnheader "RPM" [ref=f21e43]
+            - columnheader "Start–Stop / duration (pump clock)" [ref=f21e44]
+            - columnheader "Runs (real)" [ref=f21e45]
+            - columnheader "Watts" [ref=f21e46]
+            - columnheader "Verified" [ref=f21e47]
+        - rowgroup [ref=f21e48]:
+          - row [ref=f21e49]:
+            - cell "1" [ref=f21e50]
+            - cell "Schedule" [ref=f21e51]:
+              - combobox [ref=f21e52]:
+                - option "Schedule" [selected]
+                - option "Egg timer"
+                - option "Manual"
+                - option "Disabled"
+            - cell [ref=f21e53]:
+              - spinbutton [ref=f21e55]: "3250"
+            - cell "07:00 → 15:05" [ref=f21e56]:
+              - generic [ref=f21e57]:
+                - textbox [ref=f21e58]: 07:00
+                - generic [ref=f21e59]: →
+                - textbox [ref=f21e60]: 15:05
+            - cell "5:00 PM–1:05 AM" [ref=f21e61]
+            - cell "1898 W ~" [ref=f21e62]:
+              - generic "affinity-law estimate" [ref=f21e63]: 1898 W ~
+            - cell "MEASURED 2026-07-20" [ref=f21e64]
+          - row [ref=f21e66]:
+            - cell "2" [ref=f21e67]
+            - cell "Schedule" [ref=f21e68]:
+              - combobox [ref=f21e69]:
+                - option "Schedule" [selected]
+                - option "Egg timer"
+                - option "Manual"
+                - option "Disabled"
+            - cell [ref=f21e70]:
+              - spinbutton [ref=f21e72]: "3000"
+            - cell "15:00 → 18:02" [ref=f21e73]:
+              - generic [ref=f21e74]:
+                - textbox [ref=f21e75]: 15:00
+                - generic [ref=f21e76]: →
+                - textbox [ref=f21e77]: 18:02
+            - cell "1:00 AM–4:02 AM" [ref=f21e78]
+            - cell "1492 W ~" [ref=f21e79]:
+              - generic "affinity-law estimate" [ref=f21e80]: 1492 W ~
+            - cell "MEASURED 2026-07-20" [ref=f21e81]:
+              - generic "overlaps Speed 1 3:00–3:05; higher RPM wins" [ref=f21e82]: MEASURED 2026-07-20
+          - row [ref=f21e83]:
+            - cell "3" [ref=f21e84]
+            - cell "Egg timer" [ref=f21e85]:
+              - combobox [ref=f21e86]:
+                - option "Schedule"
+                - option "Egg timer" [selected]
+                - option "Manual"
+                - option "Disabled"
+            - cell [ref=f21e87]:
+              - spinbutton [ref=f21e89]: "3450"
+            - cell [ref=f21e90]:
+              - generic [ref=f21e91]:
+                - spinbutton [ref=f21e93]: "190"
+                - text: min
+            - cell "—" [ref=f21e94]
+            - cell "2398 W" [ref=f21e95]:
+              - generic "measured" [ref=f21e96]: 2398 W
+            - cell "MEASURED 2026-07-20" [ref=f21e97]:
+              - generic "the heating run — 3 h 10 m" [ref=f21e98]: MEASURED 2026-07-20
+          - row [ref=f21e99]:
+            - cell "4" [ref=f21e100]
+            - cell "Manual" [ref=f21e101]:
+              - combobox [ref=f21e102]:
+                - option "Schedule"
+                - option "Egg timer"
+                - option "Manual" [selected]
+                - option "Disabled"
+            - cell [ref=f21e103]:
+              - spinbutton [ref=f21e105]: "3030"
+            - cell "on-demand button" [ref=f21e106]
+            - cell "—" [ref=f21e107]
+            - cell "1538 W ~" [ref=f21e108]:
+              - generic "affinity-law estimate" [ref=f21e109]: 1538 W ~
+            - cell "MEASURED 2026-07-20" [ref=f21e110]:
+              - generic "on-demand button" [ref=f21e111]: MEASURED 2026-07-20
+          - row [ref=f21e112]:
+            - cell "5" [ref=f21e113]
+            - cell "Schedule" [ref=f21e114]:
+              - combobox [ref=f21e115]:
+                - option "Schedule" [selected]
+                - option "Egg timer"
+                - option "Manual"
+                - option "Disabled"
+            - cell [ref=f21e116]:
+              - spinbutton [ref=f21e118]: "1350"
+            - cell "18:50 → 06:55" [ref=f21e119]:
+              - generic [ref=f21e120]:
+                - textbox [ref=f21e121]: 18:50
+                - generic [ref=f21e122]: →
+                - textbox [ref=f21e123]: 06:55
+            - cell "4:50 AM–4:55 PM" [ref=f21e124]
+            - cell "136 W" [ref=f21e125]:
+              - generic "measured" [ref=f21e126]: 136 W
+            - cell "MEASURED 2026-07-20" [ref=f21e127]
+          - row [ref=f21e129]:
+            - cell "6" [ref=f21e130]
+            - cell "Disabled" [ref=f21e131]:
+              - combobox [ref=f21e132]:
+                - option "Schedule"
+                - option "Egg timer"
+                - option "Manual"
+                - option "Disabled" [selected]
+            - cell "—" [ref=f21e133]
+            - cell "—" [ref=f21e134]
+            - cell "—" [ref=f21e135]
+            - cell "—" [ref=f21e136]
+            - cell "MEASURED 2026-07-20" [ref=f21e137]
+          - row [ref=f21e139]:
+            - cell "7" [ref=f21e140]
+            - cell "Disabled" [ref=f21e141]:
+              - combobox [ref=f21e142]:
+                - option "Schedule"
+                - option "Egg timer"
+                - option "Manual"
+                - option "Disabled" [selected]
+            - cell "—" [ref=f21e143]
+            - cell "—" [ref=f21e144]
+            - cell "—" [ref=f21e145]
+            - cell "—" [ref=f21e146]
+            - cell "MEASURED 2026-07-20" [ref=f21e147]
+          - row [ref=f21e149]:
+            - cell "8" [ref=f21e150]
+            - cell "Disabled" [ref=f21e151]:
+              - combobox [ref=f21e152]:
+                - option "Schedule"
+                - option "Egg timer"
+                - option "Manual"
+                - option "Disabled" [selected]
+            - cell "—" [ref=f21e153]
+            - cell "—" [ref=f21e154]
+            - cell "—" [ref=f21e155]
+            - cell "—" [ref=f21e156]
+            - cell "MEASURED 2026-07-20" [ref=f21e157]
+      - generic [ref=f21e159]: This table is the device mirror — editing here means "the pump was changed, update the record" (record-follows-device), the complement of What-If's plan-then-promote. Scheduled slots (1, 2, 5) also drive the Daily timeline & Costs via the Active schedule. Watts marked ~ are affinity-law estimates; the rest are measured. "Runs (real)" applies the IntelliFlo clock offset.
+    - generic [ref=f21e160]:
+      - generic [ref=f21e161]: Operating procedures
+      - generic [ref=f21e163]:
+        - link "↗ IntelliFlo VS+SVRS owner's manual (PDF)" [ref=f21e164] [cursor=pointer]:
+          - /url: reference/IntelliFlo-VS-SVRS-Owners-Manual.pdf
+        - text: — the emulator's menu tree is built from it.
+      - button "▸ 1 · INSPECT (read-only, safe)" [ref=f21e166] [cursor=pointer]
+      - button "▸ 2 · CONTROL (daily operation, no settings touched)" [ref=f21e168] [cursor=pointer]
+      - button "▸ 3 · UPDATE (settings changes)" [ref=f21e170] [cursor=pointer]
+      - button "▸ 4 · SET TIME (fix the clock — R5)" [ref=f21e172] [cursor=pointer]
+    - generic [ref=f21e173]:
+      - generic [ref=f21e174]:
+        - generic [ref=f21e175]: Practice emulator
+        - generic [ref=f21e176]: sandbox — never touches config
+      - generic [ref=f21e177]:
+        - generic [ref=f21e178]:
+          - generic [ref=f21e179]:
+            - generic [ref=f21e180]:
+              - generic [ref=f21e181]: SVRS
+              - generic [ref=f21e182]: 5:36a
+            - generic [ref=f21e183]: 1350 RPM
+            - generic [ref=f21e184]:
+              - generic [ref=f21e185]: T 0.00
+              - generic [ref=f21e186]: 136 WATTS
+            - generic [ref=f21e187]: Running Speed 5
+          - generic [ref=f21e193]:
+            - button "Speed 1" [ref=f21e194] [cursor=pointer]: Speed1
+            - button "Speed 2" [ref=f21e195] [cursor=pointer]: Speed2
+            - button "Speed 3" [ref=f21e196] [cursor=pointer]: Speed3
+            - button "Speed 4" [ref=f21e197] [cursor=pointer]: Speed4
+          - generic [ref=f21e198]:
+            - button "Select ✗" [ref=f21e200] [cursor=pointer]: Select✗
+            - button "Escape ←" [ref=f21e202] [cursor=pointer]: Escape←
+          - generic [ref=f21e203]:
+            - generic [ref=f21e204]:
+              - generic [ref=f21e205]: ✓
+              - generic [ref=f21e207]: "!"
+              - generic [ref=f21e209]: 🔔
+            - generic [ref=f21e211]:
+              - button "▲" [ref=f21e212] [cursor=pointer]
+              - button "◀" [ref=f21e213] [cursor=pointer]
+              - button "⏎" [ref=f21e214] [cursor=pointer]
+              - button "▶" [ref=f21e215] [cursor=pointer]
+              - button "▼" [ref=f21e216] [cursor=pointer]
+            - button "☰ Menu" [ref=f21e218] [cursor=pointer]: ☰Menu
+          - generic [ref=f21e224]:
+            - button "Quick Clean" [ref=f21e225] [cursor=pointer]: QuickClean
+            - button "Time Out" [ref=f21e226] [cursor=pointer]: TimeOut
+            - button "Start Stop" [ref=f21e227] [cursor=pointer]:
+              - generic [ref=f21e228]: Start
+              - generic [ref=f21e229]: Stop
+            - button "Reset" [ref=f21e230] [cursor=pointer]
+        - generic [ref=f21e231]:
+          - generic [ref=f21e232]: Drill
+          - combobox [ref=f21e233]:
+            - option "Free play" [selected]
+            - option "Read a speed's Mode + RPM (no changes)"
+            - option "Start a Speed 3 heat run"
+            - option "Set the clock (R5 rehearsal)"
+            - option "Change a setting and save it"
+          - generic [ref=f21e234]: "Armed: schedule is running (menu use doesn't stop it)."
+          - generic [ref=f21e235]: Menu tree from the owner's manual (linked above). Speed 1–8 shows this pump's real register; other branches show the manual's factory defaults — the real pad's values differ, so verify on inspection. Firmware may vary; when the real pump diverges, photograph it.
+  - generic [ref=f21e236]: One config object drives every tab; Commissioning writes measured values back into it (flipping EST/PENDING → MEASURED). Export/Import moves that record between devices.

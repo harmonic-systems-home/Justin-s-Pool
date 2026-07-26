@@ -83,25 +83,25 @@ export default function IntelliFlo({ config, update }) {
           <span style={{ color: C.faint }}> — the emulator's menu tree is built from it.</span>
         </div>
         <Proc title="1 · INSPECT (read-only, safe)" body={[
-          "Menu opens the config menu — a running SCHEDULE keeps running while you browse (observed on the pad: viewing never interrupts the program).",
+          "Menu opens the config menu — the running program keeps running while you browse (observed on the pad: menu navigation never interrupts it).",
           "Select (✗) drills in. Inside a speed it pages the parameter screens — Mode, then the RPM (shown as \"Set Reference\"), then the schedule times / egg time. Up/Down scroll; Escape (←) backs up.",
           "Enter only SAVES — never needed for viewing; pressing it where nothing can be saved gives a harmless \"Key Error! Key not in use!\".",
           "Photograph every settings screen — the photos ARE the verification stamp.",
         ]} />
         <Proc title="2 · CONTROL (daily operation, no settings touched)" body={[
           "Manual run: press a Speed button, then Start (Speed 3 self-stops via its 3:10 egg timer).",
-          "Stop halts any run. Time Out = temporary pause with auto-resume. Quick Clean = temporary high-speed run (the pool guy's button).",
-          "After ANY interaction, confirm the display shows \"Running Schedule\" or \"Running Speed N\" before walking away.",
+          "Stop halts any run — it's the ONLY thing that stops the pump. Time Out = temporary pause with auto-resume. Quick Clean = temporary high-speed run (the pool guy's button).",
+          "If you ever press Stop, remember to press Start again — a stopped pump runs NOTHING (no filtration, no freeze protection) until someone notices.",
         ]} />
         <Proc title="3 · UPDATE (settings changes)" warn body={[
-          "Menu → navigate to a value → adjust it in place (▲▼ change the digit, ◀▶ move the cursor) → Enter to SAVE. Unlike viewing, EDITING stops the schedule.",
-          "⚠ CRITICAL: after editing, press Start/Stop to RE-ARM the schedule. A pump left stopped after an edit runs NOTHING — no filtration, no freeze protection — until someone notices.",
+          "Menu → navigate to a value → adjust it in place (▲▼ change the digit, ◀▶ move the cursor) → Enter to SAVE → Escape out. Editing does NOT stop the pump — the program keeps running throughout.",
+          "Escape only navigates; it never starts or stops the pump. So a settings change doesn't need a re-arm — just confirm the display returned to \"Running Schedule\".",
           "Same session: update the table above to match, photograph the new screens, add a History entry (date/what/why/who). Clock changes only together with schedule promotion (R5).",
         ]} />
         <Proc title="4 · SET TIME (fix the clock — R5)" warn body={[
           "The pump clock is ~10 h behind, so the schedule runs at the wrong real time. Fixing it shifts the current schedule — do it TOGETHER with programming the new TOU schedule (R5), never alone.",
-          "Menu → Select (opens Settings) → ▼ to 'Set Time' → Select (cursor lands in the time field) → ▲▼ change the digit, ◀▶ move the cursor → Enter to save. Set 'Set AM/PM' too if it's wrong.",
-          "Editing STOPS the pump → press Start/Stop to RE-ARM. Then zero the clock offsets on Commissioning (test 17 / R5) so every timeline reads real time and the banner clears.",
+          "Menu → Select (opens Settings) → ▼ to 'Set Time' → Select (cursor lands in the time field) → ▲▼ change the digit, ◀▶ move the cursor → Enter to save → Escape out. Set 'Set AM/PM' too if it's wrong. The pump keeps running the whole time.",
+          "Then zero the clock offsets on Commissioning (test 17 / R5) so every timeline reads real time and the banner clears.",
         ]} />
       </Card>
 
@@ -126,8 +126,9 @@ function Proc({ title, body, warn }) {
 // A faithful IntelliFlo VS+SVRS keypad simulation. The menu tree below is taken
 // from the owner's manual (linked above); Speed 1–8 is populated from this pump's
 // real register, the other branches show the manual's factory defaults (the real
-// pad's values differ — verify on inspection). The point is to rehearse the
-// re-arm habit (the mistake that actually costs) before touching the real pad.
+// pad's values differ — verify on inspection). Field-observed on this pump: menu
+// navigation — browsing AND editing — does NOT interrupt the running program;
+// only an explicit Stop stops it, and Escape never starts or stops it.
 
 function Emulator({ config }) {
   const slots = config.pump.slots || [];
@@ -180,8 +181,11 @@ function Emulator({ config }) {
 
   const press = (k) => {
     if (k === "reset") return setSt(init);
-    // Menu opens the config menu but does NOT interrupt a running SCHEDULE
-    // (observed on the real pad — the schedule keeps running while you browse).
+    // Menu does NOT stop the pump — you can browse while it runs (the green ✓ is a
+    // power LED, not "running"). What stops it is EDITING a value (below); and
+    // Escape only navigates — it never starts or stops the pump. Only Start/Stop
+    // re-arms. So a pure look-around leaves it running; once you edit, it stays
+    // stopped until Start/Stop. (Rick, this pump.)
     if (k === "menu") return upd((n) => { n.stack = [{ items: TREE, idx: 0 }]; n.editing = false; n.visitedMenu = true; });
     if (k === "startstop") return upd((n) => { if (n.running) { n.running = false; n.stack = []; n.editing = false; n.label = "— STOPPED —"; } else { n.running = true; n.stack = []; n.editing = false; n.label = "Running Schedule"; n.saved = false; } });
     if (k === "quick") return upd((n) => { n.running = true; n.stack = []; n.editing = false; n.label = "Quick Clean"; });
@@ -200,13 +204,16 @@ function Emulator({ config }) {
         if (!n.stack.length) return; const lvl = n.stack[n.stack.length - 1]; const c = lvl.items[lvl.idx];
         if (n.editing) return;
         if (c.children) { n.stack = n.stack.concat({ items: c.children, idx: 0 }); if (c.kind === "speed") n.sawSpeedParam = true; }
-        else { n.editing = true; n.running = false; n.label = "— STOPPED —"; } // editing a value stops the schedule → must re-arm
+        else { n.editing = true; } // enter edit-in-place — the running program keeps running
       });
     }
     if (k === "escape") {
+      // Escape only navigates — it never starts or stops the pump. Exiting the
+      // menu returns to the run screen with the program still running (or still
+      // stopped, if you had explicitly pressed Stop).
       return upd((n) => {
         if (n.editing) { n.editing = false; return; }
-        if (n.stack.length) { n.stack = n.stack.slice(0, -1); if (!n.stack.length) { n.running = false; n.label = "— STOPPED —"; } }
+        if (n.stack.length) n.stack = n.stack.slice(0, -1);
       });
     }
     if (k === "enter") return upd((n) => { if (n.editing) { const lv = n.stack[n.stack.length - 1]; n.saved = true; n.savedItem = lv?.items[lv.idx]?.name || ""; n.editing = false; n.msg = "Saved."; } else n.msg = "Key Error! Key not in use!"; });
@@ -220,8 +227,8 @@ function Emulator({ config }) {
   const activeSched = () => slots.find((x) => x.mode === "Schedule" && spans({ start: x.start, end: x.end }).some(([a, b]) => pcMin >= a && pcMin < b))?.slot;
 
   const inMenu = st.stack.length > 0;
-  // The schedule keeps running while you browse the menu, so "armed" tracks the
-  // schedule, not the view. Only an EDIT (which stops the pump) disarms it.
+  // Menu use never stops the pump, so "armed" tracks the schedule, not the view —
+  // it stays armed while you browse or edit. Only an explicit Stop disarms it.
   const armed = st.running && st.label === "Running Schedule";
 
   // Running-screen fields (manual layout: SVRS/time · RPM · countdown/Watts · feature)
@@ -243,8 +250,8 @@ function Emulator({ config }) {
     free: { label: "Free play" },
     inspect: { label: "Read a speed's Mode + RPM (no changes)", ok: (s) => s.sawSpeedParam && s.running && s.label === "Running Schedule", hint: "Menu → ▼ to 'Speed 1-8' → Select → pick a speed → Select → ▼ pages Mode / Set Reference (RPM). Viewing NEVER stops the schedule — that's the point." },
     heat: { label: "Start a Speed 3 heat run", ok: (s) => s.running && s.label.includes("Speed 3"), hint: "Press the Speed 3 button (it ramps up)." },
-    settime: { label: "Set the clock (R5 rehearsal)", ok: (s) => s.savedItem === "Set Time" && s.running && !s.stack.length && s.label === "Running Schedule", hint: "Menu → Select (Settings) → ▼ to 'Set Time' → Select to edit → ▲▼ / ◀▶ set the time → Enter to save → Escape out → Start/Stop to re-arm." },
-    edit: { label: "Change a setting, then re-arm (R5 habit)", ok: (s) => s.saved && s.running && !s.stack.length && s.label === "Running Schedule", hint: "Menu → drill to a value → Select to edit (this STOPS the schedule) → Enter to save → Escape out → Start/Stop to re-arm. The re-arm is the graded step." },
+    settime: { label: "Set the clock (R5 rehearsal)", ok: (s) => s.savedItem === "Set Time" && s.running && !s.stack.length && s.label === "Running Schedule", hint: "Menu → Select (Settings) → ▼ to 'Set Time' → Select to edit → ▲▼ / ◀▶ set the time → Enter to save → Escape out. The program keeps running the whole time." },
+    edit: { label: "Change a setting and save it", ok: (s) => s.saved && s.running && !s.stack.length && s.label === "Running Schedule", hint: "Menu → drill to a value → Select to edit → ▲▼ / ◀▶ adjust → Enter to save → Escape out. Editing does NOT stop the pump — the schedule runs throughout." },
   };
   const dr = drills[drill];
   const pass = dr.ok ? dr.ok(st) : null;
@@ -297,7 +304,7 @@ function Emulator({ config }) {
               <>
                 <div style={{ font: mono(9, 600), color: "#F3B04B", letterSpacing: "0.08em", marginBottom: 6 }}>PUMP STOPPED</div>
                 <div style={{ font: mono(20, 600), color: "#B8F5D8" }}>— STOPPED —</div>
-                <div style={{ font: mono(11), color: "#F3B04B" }}>press Start/Stop to re-arm</div>
+                <div style={{ font: mono(11), color: "#F3B04B" }}>press Start/Stop to run</div>
               </>
             )}
           </div>
@@ -358,7 +365,7 @@ function Emulator({ config }) {
             </div>
           )}
           <div style={{ marginTop: 10, font: mono(10.5), color: armed ? C.ok : C.warn, lineHeight: 1.5 }}>
-            {armed ? "Armed: schedule is running." : "⚠ Not armed — the pump is stopped or mid-menu. On the real pad this means no filtration until re-armed (Start/Stop)."}
+            {armed ? "Armed: schedule is running (menu use doesn't stop it)." : "⚠ Pump stopped — press Start/Stop to run. Only an explicit Stop halts the pump; menu navigation and edits never do."}
           </div>
           <div style={{ marginTop: 10, font: mono(10), color: C.faint, lineHeight: 1.5 }}>
             Menu tree from the owner's manual (linked above). Speed 1–8 shows this pump's real register; other branches show the manual's factory defaults — the real pad's values differ, so verify on inspection. Firmware may vary; when the real pump diverges, photograph it.

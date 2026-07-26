@@ -117,7 +117,10 @@ export default function Commissioning({ config, update }) {
       </TestCard>
 
       <TestCard n={5} title="Switch-position mapping" badge={badgeFor(prov("pending"))}
-        steps={["Identify which deck valve is suction vs return (see test 6 side effect).", "Paint-pen the calibrated split positions; photograph."]}>
+        steps={["FASTEST ID — thermal touch test: during a heat run (heater firing), touch both valve BODIES in their sleeves. The RETURN valve carries heater output and is distinctly warm; the SUCTION valve stays at pool temp. Five seconds, nothing moved.",
+          "Cross-check: the '←FLOW' embossment on the right valve body (clear debris, photo both arrows — evidence, not proof; installers ignore them).",
+          "Cross-check: the drain-rate test's level-direction side effect (test 6).",
+          "Then paint-pen the calibrated split positions and photograph."]}>
         <Recorder config={config} update={update} id="switchMap" placeholder="suction valve = … / return valve = …" />
       </TestCard>
 
@@ -184,6 +187,24 @@ export default function Commissioning({ config, update }) {
           onClick={() => update((d) => { d.rates.electric.prov = prov("measured", today(), "verified vs bill"); })}>
           ✓ mark the Costs rate table MEASURED (after entering bill values)
         </div>
+      </TestCard>
+
+      <TestCard n={15} title="Routine-care characterization (interview → care calendar)" badge={badgeFor(prov("pending"))}
+        steps={["Pool service: actual visit cadence, scope of a standard visit (chemicals, brushing, baskets, filter?), how cartridge cleaning is triggered + billed.",
+          "Justin: how often he actually empties skimmer baskets + pump strainer — normal vs needle-drop season.",
+          "Robot cycles: underwater cleaner + surface skimmer — deploy trigger, runtime, recharge time, where each lives.",
+          "Anything else done routinely that no one has written down. Interview BOTH Justin and the pool guy — the difference is itself a finding.",
+          "Reference: the skimmer-basket-full photo (Photos → Historical) is the pre-surface-robot norm; shoot a current-typical basket for a before/after pair."]}>
+        <Recorder config={config} update={update} id="routineCare" placeholder="visit cadence · basket cadence · robot cycles → fills the Maintenance care calendar" />
+      </TestCard>
+
+      <TestCard n={16} title="Seasonal debris calendar + escalation trigger" badge={badgeFor(prov("pending"))}
+        steps={["Debris calendar: which months does needle/leaf load spike? Get Justin's observed month-by-month rating (light/moderate/heavy) — redwoods shed under late-summer drought + fall/winter storms. Drives dogs in/out, basket cadence, cartridge frequency, robot runs.",
+          "Tiered response (write down the tribal knowledge): Tier 1 (normal) = two robots keep up, Polaris mothballed, dogs out. Tier 2 (surge) = robots outpaced → Polaris deployed, dogs in, booster window active.",
+          "THE ESCALATION TRIGGER (key undocumented datum): what observation tells Justin the robots are losing? (needles on the bottom despite runs? basket fill rate? morning surface coverage?) Write it as a plain sentence a house-sitter could apply.",
+          "The de-escalation signal: when does the Polaris come back out?",
+          "OBSERVATION PROGRAM (data before spending, next bad season): (1) dawn floor check before robots run — needles on the bottom at first light = the overnight battery gap matters; clean floor = it doesn't. (2) Diligent-uptime trial — keep the surface bot charged/emptied religiously through a heavy week; does it alone hold the line? (3) Only if it loses: escalation ladder by cost — diligence → second surface bot (~$300) → solar-assist bot → tree trimming ($1.5–3k/yr, uncertain; needles arrive laterally on wind)."]}>
+        <Recorder config={config} update={update} id="debrisCalendar" placeholder="peak months · escalation trigger sentence · de-escalation signal" />
       </TestCard>
 
       <Divider>Lighting reverse-engineering (L-series) — one metering session, helper + multimeter</Divider>

@@ -48,5 +48,8 @@ Replace with SMUD Time-of-Day (5–8 p.m.) 2026 structure as an editable seasona
 
 Expected corrected figures at SMUD summer rates: current ≈ $3.40–3.60/day (~$105/mo, daytime block eats mid-peak), proposed ≈ $0.85/day (~$26/mo, mostly off-peak + EV band) → **savings ≈ $78–80/mo** — matching the handoff §6.5 estimate.
 
+### 7. Schematic correction: booster tee is DOWNSTREAM of the heater (empirically confirmed)
+Current schematic feeds POLARIS BOOST from the filter output (cool/blue). Rick's annotated pad photo (7/25) traces the heated (red) leg into the booster branch, and field evidence confirms: with the heater firing and the booster OFF, heated water was felt exiting the vacuum wall socket (7/19) — an idle centrifugal booster passes flow, so the cleaner port weeps heated return water during heat runs. Move the tee: heater out → heated leg → booster branch. Side effect worth a tooltip: the cleaner port is a small always-open return path whenever the trunk is pressurized. Record the observation as an informal commissioning result (claim / method / date) — first entry in the results log.
+
 ## Data still pending (do not block on these)
 Hayward BTU (ID in progress), one high-RPM Watts reading, heater flow-switch test @1350/2600, left-timer load inventory, SunTouch AUX/lights test, spa-level test, partial-waterfall aesthetics test.

@@ -9,6 +9,7 @@ REPO = "Justin-s-Pool-data"
 FILE_PATH = "results.json"
 ALLOW_ORIGIN = "https://harmonic-systems-home.github.io"
 
-# Secrets are NOT stored here. Set them once after `wrangler deploy`:
-#   wrangler secret put GH_TOKEN         # fine-grained PAT, Contents R/W, PRIVATE data repo only
-#   wrangler secret put POOL_PASSPHRASE  # the "pool password" Justin types once per device
+# Secrets are NOT stored here. Set them after `wrangler deploy`:
+#   wrangler secret put GH_TOKEN               # fine-grained PAT, Contents R/W, PRIVATE data repo only
+#   wrangler secret put FAMILY_PASSPHRASE      # full access (write all, read sensitive). Legacy POOL_PASSPHRASE still works as family.
+#   wrangler secret put CONTRACTOR_PASSPHRASE  # pool guy: writes visitLog only, never reads sensitive (optional)

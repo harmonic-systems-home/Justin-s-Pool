@@ -7,10 +7,24 @@ Keeps commissioning data **private** while the app repo + GitHub Pages stay publ
 
 The app is a two-tier client (see the in-app **Sync** panel):
 
-- **Tier 1 — Justin (zero-GitHub):** app → Worker, authed by a shared passphrase entered once per device. This is the normal path.
-- **Tier 2 — Rick (admin/fallback):** app → GitHub API directly with a personal fine-grained PAT pasted into the Sync panel. Use if the Worker is ever down.
+- **Tier 1 — passphrase → Worker:** app → Worker, authed by a shared passphrase entered once per device. The normal path.
+- **Tier 2 — Rick (admin/fallback):** app → GitHub API directly with a personal fine-grained PAT pasted into the Sync panel. Full access; use if the Worker is ever down.
 
 `localStorage` is always the working copy; Sync is the store of record.
+
+## Roles (two passphrases, scoped at the Worker)
+
+The Worker branches on **which** passphrase authenticated:
+
+- **FAMILY** (`FAMILY_PASSPHRASE`, or the legacy `POOL_PASSPHRASE`) — full: writes the whole document, reads sensitive fields (the pool-guy fee, contract #).
+- **CONTRACTOR** (`CONTRACTOR_PASSPHRASE`, optional) — writes **only** the `visitLog` namespace (read-modify-write; it cannot alter anything else), and its reads have the sensitive `private` bucket **stripped** — so the pool guy can log a visit on his phone without ever seeing the fee. Redaction is by absence: the unauthorized data never leaves the Worker.
+
+Your existing `POOL_PASSPHRASE` keeps working as family — no change needed. To enable the contractor role later:
+```
+wrangler secret put CONTRACTOR_PASSPHRASE
+wrangler deploy      # if worker.js changed
+```
+Both GET and PUT responses now include a `role` field; the app uses it to decide whether to show sensitive rows.
 
 ## One-time setup
 

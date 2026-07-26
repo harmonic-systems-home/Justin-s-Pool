@@ -35,7 +35,9 @@ const EDGES = [
   { id: "padTrunk", d: `M ${P.vWF.x} ${P.vWF.y + 26} L ${P.vWF.x} 292 L ${P.vDeck.x + 6} 292 L ${P.vDeck.x + 14} ${P.vDeck.y + 16}` },
   { id: "retPool", d: `M ${P.vDeck.x - 18} ${P.vDeck.y - 12} L ${P.pool.x + 58} ${P.pool.y + 32}` },
   { id: "retSpa", d: `M ${P.vDeck.x - 18} ${P.vDeck.y + 12} L ${P.spa.x + 58} ${P.spa.y - 32}` },
-  { id: "boostTap", d: `M ${P.filter.x + 20} ${P.filter.y + 26} L ${P.booster.x} ${P.booster.y - 28}` },
+  // booster/cleaner branch tees off the heated return TRUNK downstream of the
+  // heater (corrected 7/25), not the filter output
+  { id: "boostTap", d: `M ${P.booster.x} 292 L ${P.booster.x} ${P.booster.y - 28}` },
   { id: "boostCleaner", d: `M ${P.booster.x + 44} ${P.booster.y} L ${P.cleaner.x - 52} ${P.cleaner.y - 8}` },
 ];
 
@@ -230,8 +232,8 @@ export default function DailyOperation({ config, update, now }) {
 
           <text x={P.pool.x + 40} y={P.pool.y + 48} textAnchor="middle" style={{ font: "500 8.5px 'IBM Plex Mono', monospace", fill: C.faint }}>floor returns</text>
           <text x={P.spa.x + 40} y={P.spa.y - 40} textAnchor="middle" style={{ font: "500 8.5px 'IBM Plex Mono', monospace", fill: C.faint }}>spa jets</text>
-          <text x={(P.vWF.x + P.vDeck.x) / 2} y="304" textAnchor="middle" style={{ font: "500 8px 'IBM Plex Mono', monospace", fill: C.faint }}>under-deck return trunk</text>
-          <Box x={P.booster.x} y={P.booster.y} label="POLARIS BOOST" sub={sim.boosterOn ? "running" : "off (seasonal)"} small w={116} tone={sim.boosterOn ? C.ink : C.faint}
+          <text x={P.vDeck.x + 150} y="304" textAnchor="middle" style={{ font: "500 8px 'IBM Plex Mono', monospace", fill: C.faint }}>under-deck return trunk</text>
+          <Box x={P.booster.x} y={P.booster.y} label="POLARIS BOOST" sub={sim.boosterOn ? "running" : r.active.has("boostCleaner") ? "off · port weeps" : "off (seasonal)"} small w={116} tone={sim.boosterOn ? C.ink : C.faint}
             onClick={() => setS((p) => ({ boosterOn: !p.boosterOn }))} />
           <Box x={P.cleaner.x} y={P.cleaner.y} label="HOSE CLEANER" small w={110} tone={C.faint} />
 

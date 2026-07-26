@@ -83,6 +83,19 @@ export const DEFAULT_CONFIG = {
   maintenance: {
     robotSkimmer: "", robotScrubber: "", filterLastCleaned: "", filterCleanPSI: "", poolGuy: "",
     chlorine: "Trichlor floating dispenser + pool-guy weekly dosing. No inline chlorinator / salt cell at the pad. CYA accumulates over years → occasional partial drain/refill (pool guy's domain).",
+    // Routine-care calendar (Maintenance centerpiece; populated by Commissioning
+    // test 15). who / what / how-often, split pool-service vs Justin, seasonal.
+    careCalendar: [
+      { task: "Surface skimmer robot", owner: "Justin", cadence: "every other day (recharge = empty)", season: "ANCHOR — battery sets its own cadence; first interceptor", lastDone: "" },
+      { task: "Skimmer baskets + pump strainer", owner: "Justin", cadence: "per interview (test 15)", season: "much lighter since the surface bot; serious in needle-drop months", lastDone: "" },
+      { task: "Bottom robot (underwater cleaner)", owner: "Justin", cadence: "deploy/recharge cycle (test 15)", season: "", lastDone: "" },
+      { task: "Floater tablet refill", owner: "Pool service", cadence: "weekly-ish", season: "", lastDone: "" },
+      { task: "Filter-gauge glance", owner: "Justin", cadence: "weekly", season: "Δ from clean baseline → clean at +8–10 psi", lastDone: "" },
+      { task: "Spa-level glance", owner: "Justin", cadence: "weekly", season: "split-drift monitor", lastDone: "" },
+      { task: "Cartridge cleaning", owner: "Pool service", cadence: "when gauge Δ is high", season: "", lastDone: "" },
+      { task: "Pool service visit", owner: "Pool service", cadence: "per interview (test 15)", season: "", lastDone: "" },
+      { task: "Polaris hose vacuum (SURGE — Tier 2)", owner: "Pool service", cadence: "only when the robots can't keep up — dogs in", season: "dirty season only; ~25¢/run (test 16)", lastDone: "" },
+    ],
   },
 
   notes: "",
@@ -98,6 +111,10 @@ export const DEFAULT_CONFIG = {
   commissioning: {},
   // Remediation tasks (fixes, not tests): taskId -> { done, date, notes }.
   remediation: {},
+
+  // Service visit log — the `visit-log` namespace, writable by the contractor
+  // passphrase (see Worker roles). Each: date, work{}, psi, notes, by.
+  visitLog: [],
 
   history: [
     { date: "2002", what: "Waterfall CL115 12 V submersible lights installed (dated fixture).", who: "builder" },

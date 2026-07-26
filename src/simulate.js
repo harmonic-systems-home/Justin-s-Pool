@@ -19,8 +19,9 @@ export const PRESSURE_SIDE = [
 ];
 
 // Legs downstream of the heater outlet — these are the ones that actually
-// carry heated water when the burner is lit.
-export const DOWNSTREAM_OF_HEATER = ["heaterPad", "vwfFalls", "padTrunk", "retPool", "retSpa"];
+// carry heated water when the burner is lit. The booster/cleaner branch tees off
+// the heated return trunk (corrected 7/25), so it heats up too.
+export const DOWNSTREAM_OF_HEATER = ["heaterPad", "vwfFalls", "padTrunk", "retPool", "retSpa", "boostTap", "boostCleaner"];
 
 // Legs downstream of the filter, where a dirty cartridge shows up as reduced
 // flow. Note this excludes pumpFilter: that leg is upstream of the restriction.
@@ -53,6 +54,11 @@ export function solve(s) {
       if (s.deck === "spa") active.add("retSpa");
       else if (s.deck === "split") active.add("retSpa").add("retPool");
       else active.add("retPool");
+      // The cleaner line tees off this heated return trunk downstream of the
+      // heater (corrected 7/25). An idle centrifugal booster still passes flow,
+      // so the cleaner port is a small always-open return whenever the trunk is
+      // pressurized — it weeps HEATED water during a heat run even booster-off.
+      active.add("boostTap").add("boostCleaner");
     }
   }
 
@@ -81,8 +87,9 @@ export function solve(s) {
     warnings.push("HAZARD: pad valve on WATERFALL while the deck valves draw from the SPA — spa water is pumped out over the waterfall with no return to the spa, draining it down. Put the pad valve back to POOL before running with the spa in suction.");
 
   if (s.boosterOn && !pumpRunning)
-    warnings.push(`Booster running with main pump off — dead-heading, burns seals. Its timer window (${fmtWindow(s.booster)}) must sit inside an IntelliFlo run window.`);
-  if (s.boosterOn && pumpRunning) active.add("boostTap").add("boostCleaner");
+    warnings.push("Booster ON with the main pump off — dead-heading, burns seals.");
+  if (s.boosterOn && pumpRunning && s.vwf === "waterfall")
+    warnings.push("Booster ON but the pad valve is on WATERFALL — the cleaner line tees off the return trunk, which is diverted to the falls, so the Polaris gets little/no flow.");
   if (s.filterDirty) warnings.push("Filter flagged DIRTY — flow cut ~45% everywhere downstream.");
 
   // Schedule-level checks on the right Intermatic. What it does depends on

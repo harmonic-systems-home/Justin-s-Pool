@@ -13,7 +13,7 @@ const KEY_SYNC = "pool-v4:sync";
 const DEFAULT_SYNC = {
   mode: "worker", workerUrl: "", passphrase: "",
   owner: "harmonic-systems-home", repo: "Justin-s-Pool-data", path: "results.json", token: "",
-  by: "", autosync: true, sha: null,
+  by: "", autosync: true, sha: null, role: null,
 };
 
 export default function SyncPanel({ config, setConfig, onAuthChange }) {
@@ -23,9 +23,11 @@ export default function SyncPanel({ config, setConfig, onAuthChange }) {
   const lastSynced = useRef(null); // JSON string last pushed/pulled — suppresses echo saves
   const timer = useRef(null);
 
-  // "Authed" = a secret is present on this device → sensitive fields may be shown/edited.
-  const authed = sc.mode === "worker" ? !!sc.passphrase : !!sc.token;
-  useEffect(() => { onAuthChange?.(authed); }, [authed]);
+  // Only the FAMILY role unlocks sensitive fields. GitHub-direct = full access;
+  // Worker role is learned from sync responses and persisted (sc.role). A
+  // contractor passphrase never flips this true, and never receives the data.
+  const familyAuthed = sc.mode === "github" ? !!sc.token : sc.role === "family";
+  useEffect(() => { onAuthChange?.(familyAuthed); }, [familyAuthed]);
 
   const persist = (next) => { setSc(next); save(KEY_SYNC, next); };
   const setField = (k, v) => persist({ ...sc, [k]: v });
@@ -45,10 +47,10 @@ export default function SyncPanel({ config, setConfig, onAuthChange }) {
     setStatus({ state: "syncing", msg: "saving…" });
     const snapshot = config;
     try {
-      const sha = await push(sc, snapshot, sc.sha, sc.by);
+      const { sha, role } = await push(sc, snapshot, sc.sha, sc.by);
       lastSynced.current = JSON.stringify(snapshot);
-      persist({ ...sc, sha });
-      setStatus({ state: "ok", msg: `saved ${clock()}` });
+      persist({ ...sc, sha, role });
+      setStatus({ state: "ok", msg: `saved ${clock()}${role === "contractor" ? " (visit log)" : ""}` });
     } catch (e) {
       if (e instanceof Conflict) return resolveConflict(snapshot);
       setStatus({ state: "error", msg: String(e.message || e) });
@@ -63,8 +65,8 @@ export default function SyncPanel({ config, setConfig, onAuthChange }) {
       const full = loadConfig(merged);
       lastSynced.current = JSON.stringify(full);
       setConfig(full);
-      const sha = await push(sc, full, remote.sha, sc.by);
-      persist({ ...sc, sha });
+      const { sha, role } = await push(sc, full, remote.sha, sc.by);
+      persist({ ...sc, sha, role });
       setStatus({ state: "ok", msg: `merged + saved ${clock()}` });
     } catch (e) {
       setStatus({ state: "error", msg: String(e.message || e) });
@@ -75,12 +77,12 @@ export default function SyncPanel({ config, setConfig, onAuthChange }) {
     setStatus({ state: "syncing", msg: "loading…" });
     try {
       const remote = await pull(sc);
-      if (!remote.json) { persist({ ...sc, sha: remote.sha }); setStatus({ state: "ok", msg: "cloud is empty — Sync now to seed it" }); return; }
+      if (!remote.json) { persist({ ...sc, sha: remote.sha, role: remote.role }); setStatus({ state: "ok", msg: "cloud is empty — Sync now to seed it" }); return; }
       const full = loadConfig(remote.json);
       lastSynced.current = JSON.stringify(full);
       setConfig(full);
-      persist({ ...sc, sha: remote.sha });
-      setStatus({ state: "ok", msg: `pulled ${clock()}` });
+      persist({ ...sc, sha: remote.sha, role: remote.role });
+      setStatus({ state: "ok", msg: `pulled ${clock()}${remote.role === "contractor" ? " (visit log — public view)" : ""}` });
     } catch (e) {
       setStatus({ state: "error", msg: String(e.message || e) });
     }

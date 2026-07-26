@@ -1,5 +1,5 @@
 import React from "react";
-import { duration, fmtWindow } from "./schedule.js";
+import { duration, fmtWindow, toRealBand } from "./schedule.js";
 import { bandTOU } from "./tou.js";
 import { bandKWh } from "./energy.js";
 import { C, mono, Badge, NumField, TimeField, money } from "./ui.jsx";
@@ -11,7 +11,7 @@ import { C, mono, Badge, NumField, TimeField, money } from "./ui.jsx";
 
 const recompute = (b) => ({ ...b, hours: +(duration(b) / 60).toFixed(2) });
 
-export default function ScheduleEditor({ bands, rates, pump, onChange, allowAddRemove = false }) {
+export default function ScheduleEditor({ bands, rates, pump, offsetMin = 0, onChange, allowAddRemove = false }) {
   const setBand = (i, patch) => onChange(bands.map((b, j) => (j === i ? recompute({ ...b, ...patch }) : b)));
   const remove = (i) => onChange(bands.filter((_, j) => j !== i));
   const add = () => onChange([...bands, recompute({
@@ -29,7 +29,8 @@ export default function ScheduleEditor({ bands, rates, pump, onChange, allowAddR
           <tr style={{ color: C.faint, borderBottom: `1px solid ${C.pipe}` }}>
             <th style={{ ...cell, textAlign: "left" }}>Band</th>
             <th style={cell}>RPM</th>
-            <th style={cell}>Start → End</th>
+            <th style={cell}>{offsetMin ? "Start → End (pump clock)" : "Start → End"}</th>
+            {offsetMin !== 0 && <th style={cell}>Runs (real)</th>}
             <th style={num}>Hrs</th>
             <th style={num}>kWh</th>
             <th style={num}>$/day</th>
@@ -40,7 +41,8 @@ export default function ScheduleEditor({ bands, rates, pump, onChange, allowAddR
         <tbody>
           {bands.map((b, i) => {
             const kwh = bandKWh(b, pump);
-            const cost = rates ? bandTOU(b, rates, pump).cost : 0;
+            // Price at REAL placement (TOU depends on when it actually runs).
+            const cost = rates ? bandTOU(offsetMin ? toRealBand(b, offsetMin) : b, rates, pump).cost : 0;
             return (
               <tr key={b.id ?? i} style={{ borderBottom: `1px solid ${C.pad}` }}>
                 <td style={{ ...cell, textAlign: "left", font: mono(12, 600) }}>{b.label}</td>
@@ -53,6 +55,7 @@ export default function ScheduleEditor({ bands, rates, pump, onChange, allowAddR
                     <TimeField value={b.end} onChange={(v) => setBand(i, { end: v })} />
                   </span>
                 </td>
+                {offsetMin !== 0 && <td style={{ ...cell, color: C.warn, fontVariantNumeric: "tabular-nums" }}>{fmtWindow(toRealBand(b, offsetMin))}</td>}
                 <td style={num}>{b.hours?.toFixed(2)}</td>
                 <td style={num}>{kwh.toFixed(2)}</td>
                 <td style={num}>{rates ? money(cost, 2) : "—"}</td>

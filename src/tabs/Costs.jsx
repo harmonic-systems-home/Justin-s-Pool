@@ -2,6 +2,7 @@ import React from "react";
 import { C, mono, cond, Card, Badge, NumField, money, Sensitive } from "../ui.jsx";
 import { kWhPerDay, galPerDay, turnovers, galPerKWh } from "../energy.js";
 import { scheduleTOU, bandTOU, effectiveSeason, PERIOD_STYLE } from "../tou.js";
+import { toRealBands } from "../schedule.js";
 import { poolGal } from "../config.js";
 
 // Reads the ACTIVE schedule. Electric cost is SMUD TOD (seasonal, weekday, with
@@ -12,7 +13,12 @@ import { poolGal } from "../config.js";
 const PERIODS = ["peak", "midPeak", "offPeak", "ev"];
 
 export default function Costs({ config, update, authed }) {
+  // TOU cost depends on WHEN the pump runs, so cost math uses REAL time (the
+  // programmed schedule shifted by the IntelliFlo clock offset). kWh/turnover
+  // are placement-independent, so they use the raw bands.
+  const clkOff = config.clocks?.intelliflo?.offsetMin || 0;
   const active = config.schedules.active;
+  const activeReal = toRealBands(active, clkOff);
   const rates = config.rates.electric;
   const gas = config.rates.gas;
   const pump = config.pump;
@@ -20,7 +26,7 @@ export default function Costs({ config, update, authed }) {
   const gal = poolGal(config);
   const season = effectiveSeason(rates);
 
-  const tou = scheduleTOU(active, rates, pump, season);
+  const tou = scheduleTOU(activeReal, rates, pump, season);
   const kwh = kWhPerDay(active, pump);
   const gpd = galPerDay(active, gpr);
   const to = turnovers(active, gal, gpr);
@@ -67,7 +73,8 @@ export default function Costs({ config, update, authed }) {
         <div style={{ font: mono(10.5), color: C.faint, marginTop: 6 }}>Verify against Justin's SMUD bill (Commissioning 14); update annually. Weekday rates shown — weekends are all off-peak (cheaper). EV band = off-peak − discount, and requires the Tesla registered at this service address.</div>
       </Card>
 
-      <Card title={`Electric — pump (active schedule, ${season} weekday)`}>
+      <Card title={`Electric — pump (active schedule, ${season} weekday${clkOff ? ", REAL time" : ""})`}
+        right={clkOff ? <span style={{ font: mono(9.5, 600), color: C.warn }}>priced at real run-time (clock {Math.round(Math.abs(clkOff) / 60)} h off)</span> : null}>
         <div style={{ overflowX: "auto" }}>
           <table style={{ borderCollapse: "collapse", font: mono(12), color: C.ink, width: "100%" }}>
             <thead>
@@ -78,7 +85,7 @@ export default function Costs({ config, update, authed }) {
               </tr>
             </thead>
             <tbody>
-              {active.map((b) => {
+              {activeReal.map((b) => {
                 const t = bandTOU(b, rates, pump, season);
                 return (
                   <tr key={b.id} style={{ borderBottom: `1px solid ${C.pad}` }}>

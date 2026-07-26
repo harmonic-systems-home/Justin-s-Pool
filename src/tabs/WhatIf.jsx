@@ -4,6 +4,7 @@ import Timeline from "../Timeline.jsx";
 import ScheduleEditor from "../ScheduleEditor.jsx";
 import { kWhPerDay, turnovers, galPerKWh } from "../energy.js";
 import { scheduleTOU } from "../tou.js";
+import { toRealBands } from "../schedule.js";
 import { poolGal } from "../config.js";
 
 // The proposal sandbox. Edit the draft schedule; deltas vs the ACTIVE schedule
@@ -13,12 +14,16 @@ import { poolGal } from "../config.js";
 const PROP_BOOSTER = { start: "09:30", end: "11:30" };
 
 export default function WhatIf({ config, update, now }) {
-  const active = config.schedules.active;
   const proposed = config.schedules.proposed;
   const rates = config.rates.electric;
   const gpr = config.pump.gpmPerRpm;
   const gal = poolGal(config);
   const f = config.valves.splitFraction.val;
+
+  // Current runs at its REAL (clock-shifted) placement; the proposal is what
+  // we'd PROGRAM after R5 sets the clock right, so it runs at face value.
+  const clkOff = config.clocks?.intelliflo?.offsetMin || 0;
+  const active = toRealBands(config.schedules.active, clkOff);
 
   const pump = config.pump;
   const metrics = (sched) => {
@@ -69,6 +74,7 @@ export default function WhatIf({ config, update, now }) {
           </table>
         </div>
         <div style={{ font: mono(10.5), color: C.faint, marginTop: 8, lineHeight: 1.5 }}>
+          {clkOff ? <>Current is priced at its <b style={{ color: C.warn }}>real</b> run-time (the pump clock is {Math.round(Math.abs(clkOff) / 60)} h off, so the daytime block actually straddles peak); the proposal assumes R5 sets the clock right, so it runs at face value — which is a chunk of the saving. </> : null}
           The proposed long-low profile shifts volume off-peak (cube law: flow ∝ RPM, power ∝ RPM³) while still holding &gt;2× the residential-standard turnover. Pool-at-split uses split-fraction f={f}. "Promote" copies this draft into the active schedule and logs the change.
         </div>
       </Card>

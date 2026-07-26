@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { load, save } from "../storage.js";
-import { fmtWindow } from "../schedule.js";
+import { fmtWindow, toRealBands } from "../schedule.js";
 import { solve, DOWNSTREAM_OF_FILTER } from "../simulate.js";
 import Timeline from "../Timeline.jsx";
 import ScheduleEditor from "../ScheduleEditor.jsx";
@@ -147,6 +147,11 @@ export default function DailyOperation({ config, update, now }) {
   const active = config.schedules.active;
   const rates = config.rates.electric;
   const bt = config.booster;
+  // The IntelliFlo clock is off, so the schedule EXECUTES at a shifted real time.
+  // Schedules stay stored as programmed (device-clock); everything time-based —
+  // the timeline, the warnings, the costs — runs in REAL time.
+  const clkOff = config.clocks?.intelliflo?.offsetMin || 0;
+  const activeReal = toRealBands(active, clkOff);
 
   const [sim, setSim] = useState(() => ({
     deck: config.valves.deck, vwf: config.valves.pad, heaterMode: "standby",
@@ -159,7 +164,7 @@ export default function DailyOperation({ config, update, now }) {
 
   const s = {
     ...sim,
-    pumpWindows: active,
+    pumpWindows: activeReal, // warnings reason about when the pump ACTUALLY runs
     booster: { start: bt.start, end: bt.end },
     rightTimer: { dogsIn: bt.dogsIn, lever: bt.lever },
     leftTimer: config.leftTimer,
@@ -208,6 +213,12 @@ export default function DailyOperation({ config, update, now }) {
         </span>
       </div>
 
+      {clkOff !== 0 && (
+        <div style={{ background: "#FDF1EE", border: `1px solid ${C.warn}`, color: C.warn, borderRadius: 10, padding: "9px 12px", marginBottom: 10, font: mono(12.5), lineHeight: 1.5 }}>
+          ⏰ The IntelliFlo clock is <b>~{Math.round(Math.abs(clkOff) / 60)} h {clkOff < 0 ? "behind" : "ahead"}</b> real time (audited {config.clocks.intelliflo.prov?.date}). The pump-clock schedule above is verbatim, but the timeline &amp; Costs below run in <b>REAL time</b> (when it actually runs) — which puts the 3250 RPM run into the 5–8 PM peak. Fix in one step with the TOU reprogram (Commissioning R5); the offsets zero out and this clears.
+        </div>
+      )}
+
       <div style={{ background: "#fff", borderRadius: 14, border: `1px solid ${C.pipe}`, overflow: "hidden", display: "flex", flexWrap: "wrap" }}>
         <div style={{ position: "relative", flex: "1 1 480px", minWidth: 0 }}>
           {/* procedure buttons live in the schematic's top whitespace */}
@@ -247,7 +258,7 @@ export default function DailyOperation({ config, update, now }) {
             onClick={() => update((d) => { d.booster.lever = d.booster.lever === "on" ? "off" : "on"; })} />
           <Box x={P.cleaner.x} y={P.cleaner.y} label="HOSE CLEANER" small w={110} tone={C.faint} />
 
-          <TimerBadge x={P.pump.x - 10} y={P.pump.y - 105} lines={["INTELLIFLO SCHED", ...active.map((b) => `${b.rpm}: ${fmtWindow(b)}`)]} />
+          <TimerBadge x={P.pump.x - 10} y={P.pump.y - 105} lines={["INTELLIFLO SCHED (pump clock)", ...active.map((b) => `${b.rpm}: ${fmtWindow(b)}`)]} />
 
           <path d={`M ${P.dial.x + 46} ${P.dial.y - 8} L ${P.booster.x - 60} ${P.booster.y + 8}`} fill="none" stroke={C.timer} strokeWidth="2" strokeDasharray="5 4" strokeLinecap="round" />
           <text x={(P.dial.x + 46 + P.booster.x - 60) / 2} y={P.dial.y - 16} textAnchor="middle" style={{ font: "600 8.5px 'IBM Plex Mono', monospace", fill: C.timer }}>120 V</text>
@@ -284,7 +295,7 @@ export default function DailyOperation({ config, update, now }) {
         )}
       </div>
 
-      <Timeline C={C} pumpWindows={active} pumpBands={active} booster={{ start: bt.start, end: bt.end }}
+      <Timeline C={C} pumpWindows={activeReal} pumpBands={activeReal} booster={{ start: bt.start, end: bt.end }}
         rightTimer={{ dogsIn: bt.dogsIn, lever: bt.lever }} heaterMode={sim.heaterMode} nowMinutes={now} rates={rates} pump={config.pump} />
 
       {r.warnings.map((w, i) => (
@@ -296,9 +307,11 @@ export default function DailyOperation({ config, update, now }) {
 
       {/* active schedule editor (per-window RPM, unmerged) */}
       <Card title="Active schedule" right={<Badge prov={active[0]?.prov} />}>
-        <ScheduleEditor bands={active} rates={rates} pump={config.pump}
+        <ScheduleEditor bands={active} rates={rates} pump={config.pump} offsetMin={clkOff}
           onChange={(next) => update((d) => { d.schedules.active = next; })} />
-        <div style={{ font: mono(10.5), color: C.faint, marginTop: 6 }}>Per-window RPM — Speed 1 and Speed 2 stay separate (the 3:00–3:05 overlap is charged to Speed 1). Edit times/RPM and every tab recomputes.</div>
+        <div style={{ font: mono(10.5), color: C.faint, marginTop: 6 }}>
+          Times are stored as PROGRAMMED (what's on the pump's face); <span style={{ color: C.warn }}>"Runs (real)"</span> is derived from the clock offset (real = programmed − offset). Per-window RPM — Speed 1 and Speed 2 stay separate. Edit and every tab recomputes.
+        </div>
       </Card>
 
       {/* Intermatic dials */}
@@ -322,6 +335,32 @@ export default function DailyOperation({ config, update, now }) {
             Silver rim tabs are the trip dogs (outer ON, inner OFF); green = switch closed; grey triangle = now. The slider is the manual lever — tap it.
             <div style={{ marginTop: 8, color: C.timer }}>Right timer is off-season manual (dogs OUT, lever decides). Left is the tripper-less power bus / master disconnect — don't flip it off casually.</div>
           </div>
+        </div>
+      </Card>
+
+      <Card title="Pad clocks" right={<span style={{ font: mono(10), color: C.faint }}>none has battery backup — recheck after any outage</span>}>
+        <div style={{ overflowX: "auto" }}>
+          <table style={{ borderCollapse: "collapse", width: "100%", font: mono(11.5), color: C.ink }}>
+            <thead><tr style={{ color: C.faint, borderBottom: `1px solid ${C.pipe}`, textAlign: "left" }}>
+              <th style={{ padding: "4px 8px" }}>Clock</th><th style={{ padding: "4px 8px" }}>Offset (clock − real)</th><th style={{ padding: "4px 8px" }}>Audited</th><th style={{ padding: "4px 8px" }}>Note</th>
+            </tr></thead>
+            <tbody>
+              {Object.entries(config.clocks || {}).map(([k, c]) => {
+                const h = Math.abs(c.offsetMin) / 60;
+                return (
+                  <tr key={k} style={{ borderBottom: `1px solid ${C.pad}` }}>
+                    <td style={{ padding: "4px 8px", fontWeight: 600 }}>{c.label}</td>
+                    <td style={{ padding: "4px 8px", color: c.offsetMin ? C.warn : C.ok }}>{c.offsetMin === 0 ? "0 (correct)" : `${c.offsetMin < 0 ? "−" : "+"}${h % 1 === 0 ? h : h.toFixed(1)} h ${c.offsetMin < 0 ? "behind" : "ahead"}`}</td>
+                    <td style={{ padding: "4px 8px", color: C.faint }}>{c.prov?.date || "—"}</td>
+                    <td style={{ padding: "4px 8px", color: C.faint }}>{c.prov?.note}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+        <div style={{ font: mono(10.5), color: C.faint, marginTop: 8, lineHeight: 1.5 }}>
+          Working model: pad clocks reset to 12:00 AM on power restoration, so each offset ≈ the time of day power came back. Edit these on Commissioning test 17. R5 zeroes them (set clocks + promote the TOU schedule as one event).
         </div>
       </Card>
 

@@ -42,10 +42,23 @@ export const DEFAULT_CONFIG = {
   pump: {
     anchorRpm: 1350, anchorWatts: 136,
     // Measured Watts@RPM override the affinity-law (P∝RPM³) estimate everywhere
-    // (Commissioning test 3). Seeded with the one measured point.
-    wattsByRpm: { 1350: 136 },
-    wattsProv: prov("measured", "2026-07-20", "clamp meter @ 1350 RPM"),
+    // (Commissioning test 3). 1350 = clamp meter 7/20; 3450 = pump display during
+    // a 1/26/24 Quick Clean run (cube law predicted 2269, measured +6% — good).
+    wattsByRpm: { 1350: 136, 3450: 2398 },
+    wattsProv: prov("measured", "2026-07-20", "1350 clamp 7/20; 3450 display 1/26/24"),
     gpmPerRpm: 0.02, gpmProv: prov("est", null, "back-solved from the handoff's ~62k gal/day"),
+  },
+
+  // Pad clock offsets (Commissioning test 17). offsetMin = clock − real (negative
+  // = behind). NONE of these clocks has battery backup, so an outage resets them.
+  // Real time is always DERIVED: real = programmed − offset. Schedules stay stored
+  // as PROGRAMMED (device-clock, as photographed); timelines + Costs render REAL.
+  // R5 zeroes the offsets (set clocks + promote the TOU schedule in one event).
+  clocks: {
+    intelliflo: { label: "IntelliFlo", offsetMin: -600, prov: prov("measured", "2026-07-26", "~10 h behind — two photos a week apart") },
+    suntouch: { label: "SunTouch", offsetMin: -600, prov: prov("measured", "2026-07-17", "2:26 AM shown at 12:26 PM — same outage signature") },
+    intermaticLeft: { label: "Intermatic (left)", offsetMin: -720, prov: prov("measured", "2026-07-18", "12 nite at ~12:30 PM; moot while tripper-less") },
+    intermaticRight: { label: "Intermatic (right)", offsetMin: 0, prov: prov("measured", "2026-07-18", "correct") },
   },
 
   heater: { model: null, btu: null,

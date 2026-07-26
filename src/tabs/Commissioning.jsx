@@ -97,7 +97,7 @@ export default function Commissioning({ config, update }) {
           {[
             { rpm: 1350, note: "measured 7/20" }, { rpm: 2600, note: "proposed turnover" },
             { rpm: 3000, note: "Speed 2" }, { rpm: 3030, note: "Speed 4" },
-            { rpm: 3250, note: "Speed 1" }, { rpm: 3450, note: "Speed 3 heat" },
+            { rpm: 3250, note: "Speed 1" }, { rpm: 3450, note: "Speed 3 · meas 1/26/24" },
           ].map(({ rpm, note }) => (
             <label key={rpm} style={{ display: "inline-flex", flexDirection: "column", gap: 2 }}>
               <span style={{ color: C.faint }}>{rpm} <span style={{ fontSize: 9 }}>{note}</span></span>
@@ -110,7 +110,7 @@ export default function Commissioning({ config, update }) {
           ))}
         </div>
         <div style={{ font: mono(10.5), color: C.faint, marginTop: 6, lineHeight: 1.5 }}>
-          Only <b>1350 RPM → 136 W</b> is measured (7/20). The RPMs are the observed speed presets, but their Watts are <b>affinity-law estimates</b> (P∝RPM³, anchored to 1350) until read here — enter a reading to override the estimate for that speed everywhere.
+          Measured: <b>1350 → 136 W</b> (clamp 7/20) and <b>3450 → 2,398 W</b> (pump display 1/26/24; cube law predicted 2,269, +6% — good). The other RPMs are observed speed presets with <b>affinity-law estimated</b> Watts (P∝RPM³) until read here — enter a reading to override the estimate for that speed everywhere.
         </div>
       </TestCard>
 
@@ -210,6 +210,26 @@ export default function Commissioning({ config, update }) {
         <Recorder config={config} update={update} id="debrisCalendar" placeholder="peak months · escalation trigger sentence · de-escalation signal" />
       </TestCard>
 
+      <TestCard n={17} title="Pad clock audit → real-time offsets" badge={badgeFor(config.clocks?.intelliflo?.prov)}
+        steps={["Photograph EVERY pad clock next to a phone clock: IntelliFlo, SunTouch, both Intermatic dials.",
+          "Enter each offset here as hours (clock − real; negative = behind). Working model: a clock resets to 12:00 AM on power restoration, so its offset ≈ the time of day power came back.",
+          "This makes all timelines + Costs render REAL time (the current 3250 run actually straddles the 5–8 PM peak). R5 zeroes the offsets. None of these clocks has battery backup — re-audit after any outage.",
+          "Prediction to verify after a future outage: the new offset = the restoration time-of-day."]}>
+        <div style={{ display: "flex", gap: 14, flexWrap: "wrap", alignItems: "center", font: mono(11.5) }}>
+          {Object.entries(config.clocks || {}).map(([k, c]) => (
+            <label key={k} style={{ display: "inline-flex", flexDirection: "column", gap: 2, color: C.faint }}>
+              <span>{c.label} <span style={{ fontSize: 9 }}>{c.prov?.date || ""}</span></span>
+              <span style={{ display: "inline-flex", gap: 4, alignItems: "center" }}>
+                <NumField value={+(c.offsetMin / 60).toFixed(2)} step="0.25" width={70}
+                  onChange={(v) => update((d) => { d.clocks[k].offsetMin = Math.round((v || 0) * 60); d.clocks[k].prov = prov("measured", today(), "audited"); })} />
+                <span>h (clock − real)</span>
+              </span>
+            </label>
+          ))}
+        </div>
+        <div style={{ font: mono(10.5), color: C.faint, marginTop: 6 }}>Negative = behind. IntelliFlo/SunTouch ≈ −10 h (same ~10 h pad outage); left Intermatic ≈ −12 h (hand-set, moot while tripper-less); right ≈ 0.</div>
+      </TestCard>
+
       <Divider>Lighting reverse-engineering (L-series) — one metering session, helper + multimeter</Divider>
 
       <TestCard n="L0" title="Map the pad subpanel" badge={badgeFor(prov("pending"))}
@@ -258,6 +278,12 @@ export default function Commissioning({ config, update }) {
           body="Label pipes at confusion points ('to waterfall', 'spa return', 'cleaner line'); mark the calibrated deck-valve split positions on the collars (after tests 5/6); write 'POOL VALVES FIRST' at the pad valve." />
         <RemediationRow config={config} update={update} id="R4" title="R4 · Reconnect the SunTouch air sensor"
           body="Clears the flashing AIR Error. Meter the salvaged probe (~10 kΩ across the leads at ~77 °F = good); splice with gel-filled connectors, or fit a new Pentair 10 kΩ sensor (~$15–25) — two-wire, non-polarized, on the AIR terminals behind the deadfront (POWER OFF first); mount in shade. Set the SunTouch clock while in there. Turns the abandoned controller into a quiet, credible fallback + a working pad thermometer." />
+        <RemediationRow config={config} update={update} id="R5" title="R5 · Set all pad clocks + promote the TOU schedule (one event)"
+          body="Do it as a single operation, or fixing the IntelliFlo clock alone would shift the current schedule 10 h (3250 RPM suddenly at 7 AM). In one session: set the IntelliFlo clock to real time AND program the proposed TOU schedule; set the SunTouch clock (R4); rotate both Intermatic dials to real time (moot while tripper-less, but sane). Then zero the four offsets on test 17 — the banner clears. Log it in History (date + who). No clock here has battery backup, so any future outage un-sets everything: add 'check pump clock' to the care calendar + after-any-outage checklist." />
+        <div style={{ font: mono(10, 600), color: C.ok, marginTop: 8, cursor: "pointer" }}
+          onClick={() => { if (confirm("Zero all four pad-clock offsets? Do this only after R5 has actually set the clocks.")) update((d) => { Object.keys(d.clocks).forEach((k) => { d.clocks[k].offsetMin = 0; d.clocks[k].prov = prov("measured", today(), "set to real time (R5)"); }); }); }}>
+          ✓ zero all clock offsets (after R5 sets the clocks)
+        </div>
       </div>
     </div>
   );

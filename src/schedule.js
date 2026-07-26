@@ -30,6 +30,26 @@ export const fmtWindow = (w) => {
   return `${fmt(s)}–${fmt(e)}`;
 };
 
+/** Minutes past midnight → "HH:MM" 24-hour, wrapping into 0..1440. */
+export const hhmm = (mins) => {
+  const m = ((mins % DAY) + DAY) % DAY;
+  return `${String(Math.floor(m / 60)).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`;
+};
+
+/**
+ * Shift a window/band from device-clock time to REAL time.
+ *
+ * offsetMin = clock − real (negative = the clock runs behind). A schedule fires
+ * when its clock reads the programmed time, i.e. when real = programmed − offset.
+ * Duration is preserved, so hours/RPM/etc. carry through unchanged.
+ */
+export const toRealBand = (band, offsetMin) => {
+  const s = toMinutes(band.start), e = toMinutes(band.end);
+  if (s == null || e == null || !offsetMin) return band;
+  return { ...band, start: hhmm(s - offsetMin), end: hhmm(e - offsetMin) };
+};
+export const toRealBands = (bands, offsetMin) => (offsetMin ? bands.map((b) => toRealBand(b, offsetMin)) : bands);
+
 /**
  * A window as one or two [start, end) spans in minutes.
  *

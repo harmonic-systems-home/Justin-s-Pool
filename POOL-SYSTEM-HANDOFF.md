@@ -52,7 +52,7 @@ Four clocks exist; only some matter:
 
 | Authority | Controls | Status |
 |---|---|---|
-| IntelliFlo internal schedule | **CAPTURED 7/20/26:** Speed 1 @3250 RPM 7:00a–3:05p · Speed 2 @3000 3:00p–6:02p · Speed 5 @1350 6:50p–6:55a. Pump runs ~23 h/day; only idle window 6:02–6:50 PM. Speed 3 = egg timer 3450 RPM, 3 h 10 m (the heating run — Justin's "~5 hours" was this). Speed 4 = manual 3030. Overlap 3:00–3:05 harmless (higher RPM wins). | ACTIVE — the real filtration boss |
+| IntelliFlo internal schedule | **CAPTURED 7/20/26 — in PUMP-CLOCK time; clock found ~10 h BEHIND (7/26, matches SunTouch offset — single pad outage, likely subpanel install). REAL windows: Speed 1 @3250 = 5:00 PM–1:05 AM (straddles SMUD 5–8 PM peak!), Speed 2 @3000 = 1:00–4:02 AM, Speed 5 @1350 = 4:50 AM–4:55 PM.** Vindicates Justin's "pumps after midnight." Speed 3 = egg timer 3450, 3 h 10 m (the heating run). Speed 4 = manual 3030. Fix clocks only together with the TOU reprogram (R5). | ACTIVE — the real filtration boss, on a lying clock |
 | IntelliFlo manual (ON + Speed 3) | Heating runs, ~5 h auto **Time Out** | ACTIVE — Justin's procedure |
 | Hayward thermostat | Burner firing when flow present | ACTIVE — no clock, hence standby discipline |
 | Right Intermatic | Polaris booster — **manual seasonal switch**: no trippers installed; pool guy adds/removes "dogs" seasonally. Currently lever OFF, cleaner out of pool | CONFIRMED — no off-season waste while OFF |

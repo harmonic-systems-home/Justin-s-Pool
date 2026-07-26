@@ -83,10 +83,10 @@ export default function IntelliFlo({ config, update }) {
           <span style={{ color: C.faint }}> — the emulator's menu tree is built from it.</span>
         </div>
         <Proc title="1 · INSPECT (read-only, safe)" body={[
-          "Menu opens the menu (pump must be stopped; pressing Menu stops it).",
-          "Select (✗) drills into an item. Escape (←) backs up / cancels.",
+          "Menu opens the config menu — a running SCHEDULE keeps running while you browse (observed on the pad: viewing never interrupts the program).",
+          "Select (✗) drills in. Inside a speed it pages the parameter screens — Mode, then the RPM (shown as \"Set Reference\"), then the schedule times / egg time. Up/Down scroll; Escape (←) backs up.",
           "Enter only SAVES — never needed for viewing; pressing it where nothing can be saved gives a harmless \"Key Error! Key not in use!\".",
-          "Exit: press Start/Stop to leave the menu and re-arm (display returns to \"Running Schedule / Running Speed X\"). Photograph every settings screen — the photos ARE the verification stamp.",
+          "Photograph every settings screen — the photos ARE the verification stamp.",
         ]} />
         <Proc title="2 · CONTROL (daily operation, no settings touched)" body={[
           "Manual run: press a Speed button, then Start (Speed 3 self-stops via its 3:10 egg timer).",
@@ -94,9 +94,14 @@ export default function IntelliFlo({ config, update }) {
           "After ANY interaction, confirm the display shows \"Running Schedule\" or \"Running Speed N\" before walking away.",
         ]} />
         <Proc title="3 · UPDATE (settings changes)" warn body={[
-          "Menu → navigate (per Inspect) → adjust values → Enter is the SAVE action (the one context where Enter is wanted) → Escape out.",
-          "⚠ CRITICAL: press Start/Stop to exit the menu and RE-ARM the schedule. A pump left stopped in the menu after an edit runs NOTHING — no filtration, no freeze protection — until someone notices.",
+          "Menu → navigate to a value → adjust it in place (▲▼ change the digit, ◀▶ move the cursor) → Enter to SAVE. Unlike viewing, EDITING stops the schedule.",
+          "⚠ CRITICAL: after editing, press Start/Stop to RE-ARM the schedule. A pump left stopped after an edit runs NOTHING — no filtration, no freeze protection — until someone notices.",
           "Same session: update the table above to match, photograph the new screens, add a History entry (date/what/why/who). Clock changes only together with schedule promotion (R5).",
+        ]} />
+        <Proc title="4 · SET TIME (fix the clock — R5)" warn body={[
+          "The pump clock is ~10 h behind, so the schedule runs at the wrong real time. Fixing it shifts the current schedule — do it TOGETHER with programming the new TOU schedule (R5), never alone.",
+          "Menu → Select (opens Settings) → ▼ to 'Set Time' → Select (cursor lands in the time field) → ▲▼ change the digit, ◀▶ move the cursor → Enter to save. Set 'Set AM/PM' too if it's wrong.",
+          "Editing STOPS the pump → press Start/Stop to RE-ARM. Then zero the clock offsets on Commissioning (test 17 / R5) so every timeline reads real time and the banner clears.",
         ]} />
       </Card>
 
@@ -128,9 +133,19 @@ function Emulator({ config }) {
   const slots = config.pump.slots || [];
   const slotByNum = (n) => slots.find((s) => s.slot === n);
   const modeWord = (s) => (s.mode === "Egg timer" ? "Egg Timer" : s.mode);
+  // Each speed pages through its parameter screens (as observed on the real pad:
+  // Mode, then the RPM shown as "Set Reference", then schedule times / egg time).
+  const speedParams = (s) => {
+    const rows = [{ label: "Mode", big: modeWord(s) }];
+    if (s.mode === "Manual") rows.push({ label: "Set Reference", big: `${s.rpm} RPM` });
+    else if (s.mode === "Egg timer") rows.push({ label: "Set Speed", big: `${s.rpm} RPM` }, { label: "Time", big: `${s.durationMin} min` });
+    else if (s.mode === "Schedule") rows.push({ label: "Set Speed", big: `${s.rpm} RPM` }, { label: "Set Start", big: s.start }, { label: "Set Stop", big: s.end });
+    return rows.map((r) => ({ name: r.label, kind: "speedParam", speedNum: s.slot, big: r.big }));
+  };
   const speedChildren = slots.map((s) => ({
     name: `Speed ${s.slot}`, kind: "speed", modeWord: modeWord(s),
     value: s.mode === "Disabled" ? "Disabled" : s.mode === "Egg timer" ? `${s.rpm} · ${s.durationMin}m` : s.mode === "Manual" ? `${s.rpm} RPM` : `${s.rpm}  ${s.start}–${s.end}`,
+    children: speedParams(s),
   }));
   const TREE = [
     { name: "Settings", children: [
@@ -158,14 +173,16 @@ function Emulator({ config }) {
     ] },
   ];
 
-  const init = { running: true, label: "Running Schedule", stack: [], editing: false, saved: false, visitedMenu: false, msg: "" };
+  const init = { running: true, label: "Running Schedule", stack: [], editing: false, saved: false, savedItem: "", visitedMenu: false, sawSpeedParam: false, msg: "" };
   const [st, setSt] = useState(init);
   const [drill, setDrill] = useState("free");
   const upd = (fn) => setSt((s) => { const n = { ...s, msg: "" }; fn(n); return n; });
 
   const press = (k) => {
     if (k === "reset") return setSt(init);
-    if (k === "menu") return upd((n) => { n.running = false; n.stack = [{ items: TREE, idx: 0 }]; n.editing = false; n.visitedMenu = true; n.label = ""; });
+    // Menu opens the config menu but does NOT interrupt a running SCHEDULE
+    // (observed on the real pad — the schedule keeps running while you browse).
+    if (k === "menu") return upd((n) => { n.stack = [{ items: TREE, idx: 0 }]; n.editing = false; n.visitedMenu = true; });
     if (k === "startstop") return upd((n) => { if (n.running) { n.running = false; n.stack = []; n.editing = false; n.label = "— STOPPED —"; } else { n.running = true; n.stack = []; n.editing = false; n.label = "Running Schedule"; n.saved = false; } });
     if (k === "quick") return upd((n) => { n.running = true; n.stack = []; n.editing = false; n.label = "Quick Clean"; });
     if (k === "timeout") return upd((n) => { n.msg = "Time Out — paused, auto-resumes"; });
@@ -181,7 +198,9 @@ function Emulator({ config }) {
     if (k === "select") {
       return upd((n) => {
         if (!n.stack.length) return; const lvl = n.stack[n.stack.length - 1]; const c = lvl.items[lvl.idx];
-        if (n.editing) return; if (c.children) n.stack = n.stack.concat({ items: c.children, idx: 0 }); else n.editing = true;
+        if (n.editing) return;
+        if (c.children) { n.stack = n.stack.concat({ items: c.children, idx: 0 }); if (c.kind === "speed") n.sawSpeedParam = true; }
+        else { n.editing = true; n.running = false; n.label = "— STOPPED —"; } // editing a value stops the schedule → must re-arm
       });
     }
     if (k === "escape") {
@@ -190,7 +209,7 @@ function Emulator({ config }) {
         if (n.stack.length) { n.stack = n.stack.slice(0, -1); if (!n.stack.length) { n.running = false; n.label = "— STOPPED —"; } }
       });
     }
-    if (k === "enter") return upd((n) => { if (n.editing) { n.saved = true; n.editing = false; n.msg = "Saved."; } else n.msg = "Key Error! Key not in use!"; });
+    if (k === "enter") return upd((n) => { if (n.editing) { const lv = n.stack[n.stack.length - 1]; n.saved = true; n.savedItem = lv?.items[lv.idx]?.name || ""; n.editing = false; n.msg = "Saved."; } else n.msg = "Key Error! Key not in use!"; });
   };
 
   // pump-clock time (the pad clock is offset from real)
@@ -201,7 +220,9 @@ function Emulator({ config }) {
   const activeSched = () => slots.find((x) => x.mode === "Schedule" && spans({ start: x.start, end: x.end }).some(([a, b]) => pcMin >= a && pcMin < b))?.slot;
 
   const inMenu = st.stack.length > 0;
-  const armed = st.running && !inMenu && st.label === "Running Schedule";
+  // The schedule keeps running while you browse the menu, so "armed" tracks the
+  // schedule, not the view. Only an EDIT (which stops the pump) disarms it.
+  const armed = st.running && st.label === "Running Schedule";
 
   // Running-screen fields (manual layout: SVRS/time · RPM · countdown/Watts · feature)
   let rRpm = 0, rFeat = "";
@@ -220,9 +241,10 @@ function Emulator({ config }) {
 
   const drills = {
     free: { label: "Free play" },
-    inspect: { label: "Inspect Speed 5, then leave it armed", ok: (s) => s.visitedMenu && s.running && !s.stack.length && s.label === "Running Schedule", hint: "Menu → ▼ to 'Speed 1-8' → Select → ▼ to Speed 5 → Escape twice (out of the menu) → Start/Stop to re-arm." },
+    inspect: { label: "Read a speed's Mode + RPM (no changes)", ok: (s) => s.sawSpeedParam && s.running && s.label === "Running Schedule", hint: "Menu → ▼ to 'Speed 1-8' → Select → pick a speed → Select → ▼ pages Mode / Set Reference (RPM). Viewing NEVER stops the schedule — that's the point." },
     heat: { label: "Start a Speed 3 heat run", ok: (s) => s.running && s.label.includes("Speed 3"), hint: "Press the Speed 3 button (it ramps up)." },
-    edit: { label: "Change a setting, then re-arm (R5 habit)", ok: (s) => s.saved && s.running && !s.stack.length && s.label === "Running Schedule", hint: "Menu → Select (opens Settings) → Select on 'Pump Address' to edit → Enter to save → Escape twice → Start/Stop. The re-arm is the graded step." },
+    settime: { label: "Set the clock (R5 rehearsal)", ok: (s) => s.savedItem === "Set Time" && s.running && !s.stack.length && s.label === "Running Schedule", hint: "Menu → Select (Settings) → ▼ to 'Set Time' → Select to edit → ▲▼ / ◀▶ set the time → Enter to save → Escape out → Start/Stop to re-arm." },
+    edit: { label: "Change a setting, then re-arm (R5 habit)", ok: (s) => s.saved && s.running && !s.stack.length && s.label === "Running Schedule", hint: "Menu → drill to a value → Select to edit (this STOPS the schedule) → Enter to save → Escape out → Start/Stop to re-arm. The re-arm is the graded step." },
   };
   const dr = drills[drill];
   const pass = dr.ok ? dr.ok(st) : null;
@@ -256,7 +278,13 @@ function Emulator({ config }) {
                 <>
                   <div style={{ display: "flex", justifyContent: "space-between", font: mono(11, 600), color: "#7fcaa8" }}><span>{cur.name}</span><span>{pcTime}</span></div>
                   <div style={{ font: mono(24, 600), color: "#B8F5D8", lineHeight: 1.15, margin: "2px 0" }}>{cur.modeWord}</div>
-                  <div style={{ font: mono(10), color: "#7fcaa8" }}>Mode · {cur.value}</div>
+                  <div style={{ font: mono(10), color: "#7fcaa8" }}>Mode · {cur.value} · Select ✗ to page</div>
+                </>
+              ) : cur?.kind === "speedParam" ? (
+                <>
+                  <div style={{ display: "flex", justifyContent: "space-between", font: mono(11, 600), color: "#7fcaa8" }}><span>Speed {cur.speedNum}{st.editing ? "  [EDIT]" : ""}</span><span>{pcTime}</span></div>
+                  <div style={{ font: mono(24, 600), color: "#B8F5D8", lineHeight: 1.15, margin: "2px 0" }}>{cur.big}</div>
+                  <div style={{ font: mono(10), color: st.editing ? "#F3B04B" : "#7fcaa8" }}>{cur.name}{st.editing ? " ▸ ▲▼ change · Enter save" : ""}{st.msg ? `  ${st.msg}` : ""}</div>
                 </>
               ) : (
                 <>

@@ -30,6 +30,7 @@ export const DOWNSTREAM_OF_FILTER = PRESSURE_SIDE.filter((e) => e !== "pumpFilte
 export function solve(s) {
   const active = new Set();
   const heated = new Set();
+  const weeping = new Set(); // legs carrying only the small always-open trickle
   const warnings = [];
 
   const pumpRunning = s.pump === "manual3" || s.pump === "schedule-running";
@@ -55,10 +56,13 @@ export function solve(s) {
       else if (s.deck === "split") active.add("retSpa").add("retPool");
       else active.add("retPool");
       // The cleaner line tees off this heated return trunk downstream of the
-      // heater (corrected 7/25). An idle centrifugal booster still passes flow,
-      // so the cleaner port is a small always-open return whenever the trunk is
-      // pressurized — it weeps HEATED water during a heat run even booster-off.
+      // heater (corrected 7/25). The Intermatic (right) powers the booster via
+      // its lever: lever ON → the Polaris is DRIVEN (full cleaner flow); lever
+      // OFF → the idle centrifugal booster still passes a trickle, so the port
+      // WEEPS a small always-open return (drawn distinctly). Both run hot during
+      // a heat run since the tee is downstream of the heater.
       active.add("boostTap").add("boostCleaner");
+      if (s.rightTimer?.lever !== "on") weeping.add("boostTap").add("boostCleaner");
     }
   }
 
@@ -86,29 +90,24 @@ export function solve(s) {
   if (pumpRunning && s.vwf === "waterfall" && (s.deck === "spa" || s.deck === "split"))
     warnings.push("HAZARD: pad valve on WATERFALL while the deck valves draw from the SPA — spa water is pumped out over the waterfall with no return to the spa, draining it down. Put the pad valve back to POOL before running with the spa in suction.");
 
-  if (s.boosterOn && !pumpRunning)
-    warnings.push("Booster ON with the main pump off — dead-heading, burns seals.");
-  if (s.boosterOn && pumpRunning && s.vwf === "waterfall")
-    warnings.push("Booster ON but the pad valve is on WATERFALL — the cleaner line tees off the return trunk, which is diverted to the falls, so the Polaris gets little/no flow.");
   if (s.filterDirty) warnings.push("Filter flagged DIRTY — flow cut ~45% everywhere downstream.");
 
-  // Schedule-level checks on the right Intermatic. What it does depends on
-  // whether the dogs are installed, so the two cases warn about different
-  // things — an orphaned window matters only if the window is live at all.
-  const rt = s.rightTimer ?? { dogsIn: true, lever: "on" };
+  // Right Intermatic → booster power (its lever is the master switch here).
+  const rt = s.rightTimer ?? { dogsIn: false, lever: "off" };
+  const boosterPowered = rt.lever === "on";
+  if (boosterPowered && !pumpRunning)
+    warnings.push("Booster powered (lever ON) with the main pump off — dead-heading, burns seals. Pull the lever OFF.");
+  if (boosterPowered && pumpRunning && s.vwf === "waterfall")
+    warnings.push("Booster powered but the pad valve is on WATERFALL — the cleaner line tees off the return trunk, which is diverted to the falls, so the Polaris gets little/no flow.");
   if (rt.dogsIn) {
-    // Does the booster's window actually sit inside a filtration window?
-    // Nothing on this pad enforces that, and the two clocks were set years apart.
+    // With dogs installed, does the timer window sit inside a filtration window?
     const orphan = uncoveredMinutes(s.booster, s.pumpWindows);
     if (orphan > 0)
-      warnings.push(`Booster timer window (${fmtWindow(s.booster)}) sits ${orphan} min outside every IntelliFlo filtration window — during that stretch the Polaris runs with no main pump behind it. Either the IntelliFlo has a midday window nobody has read yet, or this timer needs moving.`);
-    if (rt.lever === "off")
-      warnings.push("Right Intermatic: dogs are installed but the manual lever is OFF — the booster will not run at its scheduled window.");
-  } else if (rt.lever === "on") {
-    // Dogs out means nothing ever switches it off again.
-    warnings.push("Right Intermatic: trip dogs are OUT (off-season manual mode) and the lever is ON — the booster has continuous power and will run whenever it is energized, including with the main pump stopped. Dead-heads the Polaris. Pull the lever to OFF or reinstall the dogs.");
+      warnings.push(`Booster timer window (${fmtWindow(s.booster)}) sits ${orphan} min outside every IntelliFlo filtration window — during that stretch the Polaris would run with no main pump behind it. Either the IntelliFlo has a midday window nobody has read yet, or this timer needs moving.`);
+  } else if (boosterPowered) {
+    warnings.push("Right Intermatic: trip dogs are OUT (off-season) and the lever is ON — the booster has continuous power whenever the pump runs. Pull the lever OFF or reinstall the dogs for seasonal control.");
   }
 
   const costPerHr = heaterStatus === "firing" ? 8.8 : 0;
-  return { active, heated, gpm, pumpRunning, heaterStatus, warnings, costPerHr };
+  return { active, heated, weeping, gpm, pumpRunning, heaterStatus, warnings, costPerHr };
 }

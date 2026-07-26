@@ -150,7 +150,7 @@ export default function DailyOperation({ config, update, now }) {
 
   const [sim, setSim] = useState(() => ({
     deck: config.valves.deck, vwf: config.valves.pad, heaterMode: "standby",
-    pump: "schedule", filterDirty: true, boosterOn: false, ...load(KEY_SIM, {}),
+    pump: "schedule", filterDirty: true, ...load(KEY_SIM, {}),
   }));
   const [proc, setProc] = useState(null);
   const first = useRef(true);
@@ -166,12 +166,15 @@ export default function DailyOperation({ config, update, now }) {
   };
   const r = solve(s);
   const stroke = (id) => (r.heated.has(id) ? C.hot : r.active.has(id) ? C.flow : null);
+  // Booster display: driven (Intermatic lever ON + supplied) vs the always-open weep.
+  const boostWeep = r.weeping.has("boostCleaner");
+  const boostRunning = r.active.has("boostCleaner") && !boostWeep;
 
   const applyProc = (k) => {
     setProc(k);
     const st = { ...PROCEDURES[k].state };
     if (st.pump === "schedule") st.pump = "schedule-running";
-    setS({ ...st, boosterOn: k === "daily" });
+    setS(st);
   };
   const cyclePump = () => setS((p) => ({ pump: p.pump === "off" ? "schedule" : p.pump === "schedule" ? "schedule-running" : p.pump === "schedule-running" ? "manual3" : "off" }));
   const pumpSub = sim.pump === "manual3" ? "manual spd 3" : sim.pump === "schedule-running" ? "sched: running" : sim.pump === "schedule" ? "sched: idle" : "off";
@@ -188,9 +191,12 @@ export default function DailyOperation({ config, update, now }) {
         .heatdash { stroke-dasharray: 12 9; animation: flow 2.1s linear infinite; }
         .flowdots { stroke-dasharray: 0.1 13; stroke-linecap: round; animation: dotflow 1.4s linear infinite; }
         .heatdots { stroke-dasharray: 0.1 15; stroke-linecap: round; animation: dotflow 2.8s linear infinite; }
+        /* weep = the always-open cleaner-port trickle (booster off): sparse, slow, thin */
+        .weepdots { stroke-dasharray: 0.1 30; stroke-linecap: round; animation: weepflow 4s linear infinite; }
         @keyframes flow { to { stroke-dashoffset: -21; } }
         @keyframes dotflow { to { stroke-dashoffset: -26.2; } }
-        @media (prefers-reduced-motion: reduce) { .flowdash, .heatdash, .flowdots, .heatdots { animation: none; } }
+        @keyframes weepflow { to { stroke-dashoffset: -30.1; } }
+        @media (prefers-reduced-motion: reduce) { .flowdash, .heatdash, .flowdots, .heatdots, .weepdots { animation: none; } }
       `}</style>
 
       <div style={{ display: "flex", gap: 8, flexWrap: "wrap", margin: "0 0 10px", font: mono(13, 600) }}>
@@ -214,9 +220,11 @@ export default function DailyOperation({ config, update, now }) {
           {EDGES.map((e) => {
             const col = stroke(e.id);
             if (!col) return null;
+            const weep = r.weeping.has(e.id);
             const restricted = sim.filterDirty && DOWNSTREAM_OF_FILTER.includes(e.id);
-            const cls = restricted ? (col === C.hot ? "heatdots" : "flowdots") : (col === C.hot ? "heatdash" : "flowdash");
-            return <path key={e.id + "f"} className={cls} d={e.d} fill="none" stroke={col} strokeWidth={col === C.hot ? 5.5 : 4.5} strokeLinejoin="round" />;
+            const cls = weep ? "weepdots" : restricted ? (col === C.hot ? "heatdots" : "flowdots") : (col === C.hot ? "heatdash" : "flowdash");
+            const sw = weep ? (col === C.hot ? 3 : 2.5) : (col === C.hot ? 5.5 : 4.5);
+            return <path key={e.id + "f"} className={cls} d={e.d} fill="none" stroke={col} strokeWidth={sw} strokeLinejoin="round" opacity={weep ? 0.8 : 1} />;
           })}
 
           <Box x={P.pool.x} y={P.pool.y} label="POOL" sub="deep end cold" />
@@ -233,8 +241,10 @@ export default function DailyOperation({ config, update, now }) {
           <text x={P.pool.x + 40} y={P.pool.y + 48} textAnchor="middle" style={{ font: "500 8.5px 'IBM Plex Mono', monospace", fill: C.faint }}>floor returns</text>
           <text x={P.spa.x + 40} y={P.spa.y - 40} textAnchor="middle" style={{ font: "500 8.5px 'IBM Plex Mono', monospace", fill: C.faint }}>spa jets</text>
           <text x={P.vDeck.x + 150} y="304" textAnchor="middle" style={{ font: "500 8px 'IBM Plex Mono', monospace", fill: C.faint }}>under-deck return trunk</text>
-          <Box x={P.booster.x} y={P.booster.y} label="POLARIS BOOST" sub={sim.boosterOn ? "running" : r.active.has("boostCleaner") ? "off · port weeps" : "off (seasonal)"} small w={116} tone={sim.boosterOn ? C.ink : C.faint}
-            onClick={() => setS((p) => ({ boosterOn: !p.boosterOn }))} />
+          <Box x={P.booster.x} y={P.booster.y} label="POLARIS BOOST"
+            sub={boostRunning ? "running" : boostWeep ? "off · port weeps" : bt.lever === "on" ? "on · no flow" : "off (seasonal)"}
+            small w={116} tone={boostRunning ? C.ink : C.faint}
+            onClick={() => update((d) => { d.booster.lever = d.booster.lever === "on" ? "off" : "on"; })} />
           <Box x={P.cleaner.x} y={P.cleaner.y} label="HOSE CLEANER" small w={110} tone={C.faint} />
 
           <TimerBadge x={P.pump.x - 10} y={P.pump.y - 105} lines={["INTELLIFLO SCHED", ...active.map((b) => `${b.rpm}: ${fmtWindow(b)}`)]} />
@@ -323,6 +333,8 @@ export default function DailyOperation({ config, update, now }) {
 
       <div style={{ font: mono(10.5), color: C.faint, lineHeight: 1.5 }}>
         Color = temperature (blue cold, red hot — red only after a firing heater) · pattern = flow (dashes normal, dots restricted after a dirty filter) · amber heater = armed but not lit · tap equipment/valves to simulate.
+        <br />
+        Cleaner line: solid flow = Polaris DRIVEN (Intermatic lever ON); a sparse slow trickle = the always-open port weep (booster off, but the tee is downstream of the heater so it runs hot during a heat run). Tap the dial lever or POLARIS BOOST to switch.
       </div>
     </div>
   );

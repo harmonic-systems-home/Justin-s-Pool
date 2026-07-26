@@ -142,8 +142,8 @@ function Emulator({ config }) {
       const n = +k.slice(5);
       return set({ running: true, view: "run", label: `Running Speed ${n}${n === 3 ? " · egg 3:10" : ""}` });
     }
-    if (k === "up" || k === "down") {
-      const d = k === "up" ? -1 : 1;
+    if (k === "up" || k === "down" || k === "left" || k === "right") {
+      const d = (k === "up" || k === "left") ? -1 : 1;
       if (s.view === "menu") return set({ menuIdx: (s.menuIdx + d + MENU.length) % MENU.length });
       if (s.view === "speeds") return set({ speedIdx: (s.speedIdx + d + slots.length) % slots.length });
       return;
@@ -186,18 +186,32 @@ function Emulator({ config }) {
   const d = drills[drill];
   const pass = d.ok ? d.ok(st) : null;
 
-  const Btn = ({ k, children, tone }) => (
+  // Panel primitives, matching the real IntelliFlo faceplate: rounded squares for
+  // Speed / Select / Escape / Menu / Enter, circles for the bottom row.
+  const Sq = ({ k, children, h = 40 }) => (
     <button onClick={() => press(k)} style={{
-      font: mono(10.5, 600), padding: "8px 6px", borderRadius: 7, cursor: "pointer",
-      border: `1.5px solid ${tone === "go" ? C.ok : tone === "stop" ? C.warn : C.pipe}`,
-      background: "#fff", color: tone === "go" ? C.ok : tone === "stop" ? C.warn : C.ink,
+      font: mono(9.5, 600), height: h, borderRadius: 8, cursor: "pointer", lineHeight: 1.1,
+      border: `1.5px solid ${C.pipe}`, background: "#fff", color: C.ink, padding: "0 4px",
     }}>{children}</button>
   );
+  const Arr = ({ k, children }) => (
+    <button onClick={() => press(k)} style={{
+      width: 36, height: 32, borderRadius: 7, cursor: "pointer", font: mono(12, 600),
+      border: `1.5px solid ${C.pipe}`, background: "#fff", color: C.ink, padding: 0,
+    }}>{children}</button>
+  );
+  const Circ = ({ k, children, tone }) => (
+    <button onClick={() => press(k)} style={{
+      width: 60, height: 60, borderRadius: "50%", cursor: "pointer", font: mono(9.5, 600), lineHeight: 1.1,
+      border: `1.5px solid ${tone || C.pipe}`, background: "#fff", color: tone || C.ink,
+    }}>{children}</button>
+  );
+  const Led = ({ on }) => <span style={{ width: 7, height: 7, borderRadius: "50%", background: on ? "#4ADE9E" : "#cdd6d3", boxShadow: on ? "0 0 5px #4ADE9E" : "none", display: "inline-block" }} />;
 
   return (
     <Card title="Practice emulator" right={<span style={{ font: mono(9.5), color: C.faint }}>sandbox — never touches config</span>}>
       <div style={{ display: "flex", gap: 18, flexWrap: "wrap", alignItems: "flex-start" }}>
-        <div style={{ width: 300, maxWidth: "100%" }}>
+        <div style={{ width: 320, maxWidth: "100%", background: "#EDEFEE", border: `1px solid ${C.pipe}`, borderRadius: 14, padding: 12 }}>
           {/* LCD */}
           <div style={{ background: "#0E2A22", border: `2px solid ${C.valve}`, borderRadius: 8, padding: "12px 14px", fontFamily: "'IBM Plex Mono', monospace" }}>
             <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
@@ -207,12 +221,45 @@ function Emulator({ config }) {
             <div style={{ font: mono(14, 600), color: "#B8F5D8", minHeight: 20 }}>{l1}</div>
             <div style={{ font: mono(11), color: st.view !== "run" || !st.running ? "#F3B04B" : "#7fcaa8", minHeight: 16 }}>{l2}&nbsp;</div>
           </div>
-          {/* buttons */}
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 6, marginTop: 10 }}>
-            <Btn k="speed1">Speed 1</Btn><Btn k="speed2">Speed 2</Btn><Btn k="speed3">Speed 3</Btn><Btn k="speed4">Speed 4</Btn>
-            <Btn k="menu">Menu</Btn><Btn k="up">▲</Btn><Btn k="down">▼</Btn><Btn k="select">Select ✗</Btn>
-            <Btn k="escape">Esc ←</Btn><Btn k="enter">Enter</Btn><Btn k="quick">Quick Cln</Btn><Btn k="timeout">Time Out</Btn>
-            <Btn k="startstop" tone={st.running ? "stop" : "go"}>Start/Stop</Btn><Btn k="reset">Reset</Btn>
+
+          {/* Speed row (rounded squares), each with an LED above */}
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 8, marginTop: 12, justifyItems: "center" }}>
+            {[1, 2, 3, 4].map((n) => <Led key={n} on={st.running && st.label.includes(`Speed ${n}`)} />)}
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 8, marginTop: 3 }}>
+            {[1, 2, 3, 4].map((n) => <Sq key={n} k={`speed${n}`} h={44}>Speed<br />{n}</Sq>)}
+          </div>
+
+          {/* Select (left) / Escape (right) */}
+          <div style={{ display: "flex", justifyContent: "space-between", marginTop: 12 }}>
+            <span style={{ width: 66 }}><Sq k="select" h={44}>Select<br />✗</Sq></span>
+            <span style={{ width: 66 }}><Sq k="escape" h={44}>Escape<br />←</Sq></span>
+          </div>
+
+          {/* status icons · D-pad cross with Enter centered · Menu */}
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 14 }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: 12, alignItems: "center", font: mono(13) }}>
+              <span style={{ display: "flex", alignItems: "center", gap: 5 }}>✓ <Led on={st.running} /></span>
+              <span style={{ display: "flex", alignItems: "center", gap: 5 }}>! <Led on={false} /></span>
+              <span style={{ display: "flex", alignItems: "center", gap: 5 }}>🔔 <Led on={false} /></span>
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 36px)", gridTemplateRows: "repeat(3, 32px)", gap: 5, justifyItems: "center", alignItems: "center" }}>
+              <span /><Arr k="up">▲</Arr><span />
+              <Arr k="left">◀</Arr><button onClick={() => press("enter")} style={{ width: 36, height: 32, borderRadius: 7, cursor: "pointer", font: mono(9, 600), border: `1.5px solid ${C.pipe}`, background: "#fff", color: C.ink, padding: 0 }}>⏎</button><Arr k="right">▶</Arr>
+              <span /><Arr k="down">▼</Arr><span />
+            </div>
+            <span style={{ width: 56 }}><Sq k="menu" h={50}>☰<br />Menu</Sq></span>
+          </div>
+
+          {/* bottom circles, each with an LED above */}
+          <div style={{ display: "flex", justifyContent: "space-between", marginTop: 14, padding: "0 2px" }}>
+            {[st.running && st.label.includes("Quick"), false, st.running, false].map((on, i) => <Led key={i} on={on} />)}
+          </div>
+          <div style={{ display: "flex", justifyContent: "space-between", marginTop: 3 }}>
+            <Circ k="quick">Quick<br />Clean</Circ>
+            <Circ k="timeout">Time<br />Out</Circ>
+            <Circ k="startstop" tone={st.running ? C.warn : C.ok}>{st.running ? "Stop" : "Run"}</Circ>
+            <Circ k="reset">Reset</Circ>
           </div>
         </div>
 

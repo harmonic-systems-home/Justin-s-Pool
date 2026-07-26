@@ -6,6 +6,7 @@ import SyncPanel from "./SyncPanel.jsx";
 
 import DailyOperation from "./tabs/DailyOperation.jsx";
 import Maintenance from "./tabs/Maintenance.jsx";
+import ServiceVisits from "./tabs/ServiceVisits.jsx";
 import PoolDesign from "./tabs/PoolDesign.jsx";
 import Costs from "./tabs/Costs.jsx";
 import WhatIf from "./tabs/WhatIf.jsx";
@@ -25,6 +26,7 @@ const KEY_TAB = "pool-v4:tab";
 const TABS = [
   { id: "daily", label: "Daily Operation", Comp: DailyOperation },
   { id: "maintenance", label: "Maintenance", Comp: Maintenance },
+  { id: "service", label: "Service Visits", Comp: ServiceVisits },
   { id: "design", label: "Pool Design", Comp: PoolDesign },
   { id: "costs", label: "Costs", Comp: Costs },
   { id: "whatif", label: "What If", Comp: WhatIf },
@@ -35,7 +37,13 @@ const TABS = [
 
 export default function App() {
   const [config, setConfig] = useState(() => loadConfig(load(KEY_CFG, {})));
-  const [tab, setTab] = useState(() => load(KEY_TAB, "daily"));
+  // Active tab lives in the URL hash (#service) so it's deep-linkable — e.g. a QR
+  // code straight to Service Visits — falling back to the last-used tab.
+  const validTab = (id) => TABS.some((t) => t.id === id);
+  const [tab, setTab] = useState(() => {
+    const h = location.hash.replace(/^#/, "");
+    return validTab(h) ? h : load(KEY_TAB, "daily");
+  });
   const [authed, setAuthed] = useState(false);
   const firstCfg = useRef(true);
   const importRef = useRef(null);
@@ -44,7 +52,16 @@ export default function App() {
     if (firstCfg.current) { firstCfg.current = false; return; }
     save(KEY_CFG, config);
   }, [config]);
-  useEffect(() => save(KEY_TAB, tab), [tab]);
+  useEffect(() => {
+    save(KEY_TAB, tab);
+    if (location.hash.replace(/^#/, "") !== tab) history.replaceState(null, "", `#${tab}`);
+  }, [tab]);
+  // React to the hash changing under us (QR scan into an open tab, back/forward).
+  useEffect(() => {
+    const onHash = () => { const h = location.hash.replace(/^#/, ""); if (validTab(h)) setTab(h); };
+    window.addEventListener("hashchange", onHash);
+    return () => window.removeEventListener("hashchange", onHash);
+  }, []);
 
   // Nested-immutable updates: clone, mutate, set. structuredClone keeps callers
   // from hand-threading spreads through five levels of config.

@@ -1,7 +1,5 @@
-import React, { useState } from "react";
+import React from "react";
 import { C, mono, Card, H, TextField, Sensitive } from "../ui.jsx";
-
-const WORK = [["chemicals", "chemicals"], ["brushed", "brushed"], ["baskets", "baskets"], ["cartridge", "cartridge cleaned"], ["other", "other"]];
 
 // Servicing view: the recurring rituals + editable notes/dates. Static guidance
 // comes from the handoff; the fields persist into config so a service log
@@ -16,16 +14,6 @@ export default function Maintenance({ config, update, authed }) {
       <TextField value={m[key]} onChange={(v) => set(key, v)} placeholder={ph} area minRows={2} />
     </div>
   );
-
-  const [visit, setVisit] = useState({ date: "", work: {}, psi: "", notes: "", by: "" });
-  const log = config.visitLog || [];
-  const addVisit = () => {
-    if (!visit.date && !visit.psi && !visit.notes && Object.values(visit.work).every((v) => !v)) return;
-    update((d) => { d.visitLog.unshift({ ...visit, work: { ...visit.work } }); });
-    setVisit({ date: "", work: {}, psi: "", notes: "", by: "" });
-  };
-  const delVisit = (i) => update((d) => { d.visitLog.splice(i, 1); });
-  const workSummary = (w) => WORK.filter(([k]) => w && w[k]).map(([, l]) => l).join(", ") || "—";
 
   const cal = m.careCalendar || [];
   const setCal = (i, key, v) => update((d) => { d.maintenance.careCalendar[i][key] = v; });
@@ -65,39 +53,9 @@ export default function Maintenance({ config, update, authed }) {
         <div style={{ font: mono(10), color: C.faint, marginTop: 8 }}>The 12-month debris-load strip (colored by tier) appears once the seasonal calendar is characterized (Commissioning test 16). A full-basket reference photo lives on the Photos tab (Historical).</div>
       </Card>
 
-      <Card title="Service visit log" right={<span style={{ font: mono(9, 700), color: C.timer, background: "#FBF6E7", border: `1px solid ${C.timer}`, borderRadius: 5, padding: "1px 5px" }}>CONTRACTOR-WRITABLE</span>}>
-        <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center", marginBottom: 8, font: mono(11.5) }}>
-          <input type="date" value={visit.date} onChange={(e) => setVisit((v) => ({ ...v, date: e.target.value }))}
-            style={{ font: mono(11.5), padding: "5px 7px", border: `1.5px solid ${C.pipe}`, borderRadius: 7, color: C.ink }} />
-          {WORK.map(([k, label]) => (
-            <label key={k} style={{ display: "flex", gap: 4, alignItems: "center", color: C.faint, cursor: "pointer" }}>
-              <input type="checkbox" checked={!!visit.work[k]} onChange={(e) => setVisit((v) => ({ ...v, work: { ...v.work, [k]: e.target.checked } }))} />{label}
-            </label>
-          ))}
-          <label style={{ color: C.faint, display: "flex", gap: 4, alignItems: "center" }}>PSI
-            <input value={visit.psi} onChange={(e) => setVisit((v) => ({ ...v, psi: e.target.value }))} placeholder="gauge"
-              style={{ width: 60, font: mono(11.5), padding: "5px 6px", border: `1.5px solid ${C.pipe}`, borderRadius: 7, color: C.ink }} /></label>
-          <input value={visit.by} onChange={(e) => setVisit((v) => ({ ...v, by: e.target.value }))} placeholder="who"
-            style={{ width: 90, font: mono(11.5), padding: "5px 6px", border: `1.5px solid ${C.pipe}`, borderRadius: 7, color: C.ink }} />
-        </div>
-        <div style={{ display: "flex", gap: 8, alignItems: "flex-start" }}>
-          <span style={{ flex: 1 }}><TextField value={visit.notes} onChange={(v) => setVisit((s) => ({ ...s, notes: v }))} placeholder="notes" /></span>
-          <button onClick={addVisit} style={{ font: mono(12, 600), padding: "7px 12px", borderRadius: 8, border: `2px solid ${C.ink}`, background: C.ink, color: "#fff", cursor: "pointer" }}>Log visit</button>
-        </div>
-
-        <div style={{ marginTop: 10, display: "flex", flexDirection: "column", gap: 5 }}>
-          {log.length === 0 && <div style={{ font: mono(11), color: C.faint }}>No visits logged yet.</div>}
-          {log.map((e, i) => (
-            <div key={i} style={{ display: "flex", gap: 10, alignItems: "baseline", font: mono(11), borderBottom: `1px solid ${C.pad}`, paddingBottom: 4 }}>
-              <span style={{ color: C.timer, minWidth: 86 }}>{e.date || "—"}</span>
-              <span style={{ flex: 1, color: C.ink }}>{workSummary(e.work)}{e.psi ? ` · ${e.psi} psi` : ""}{e.notes ? ` · ${e.notes}` : ""}</span>
-              <span style={{ color: C.faint }}>{e.by}</span>
-              <button onClick={() => delVisit(i)} title="remove" style={{ font: mono(11, 600), padding: "2px 7px", borderRadius: 6, border: `1.5px solid ${C.pipe}`, background: "#fff", color: C.faint, cursor: "pointer" }}>×</button>
-            </div>
-          ))}
-        </div>
-        <div style={{ font: mono(10), color: C.faint, marginTop: 8, lineHeight: 1.5 }}>
-          The pool guy logs each visit here with the <b>contractor passphrase</b> (Cloud sync) — he can write this log but never sees the sensitive fee. Fallback: a laminated sheet on a clipboard at the pad, photographed monthly into Photos. The PSI series (vs clean baseline) drives the filter-cleaning indicator and, plotted against the debris calendar, the clog-rate curve.
+      <Card title="Service visits">
+        <div style={{ font: mono(11.5), color: C.ink, lineHeight: 1.6 }}>
+          The per-visit service log lives on its own <b>Service Visits</b> tab now (deep-link <code>#service</code>, handy for a QR code at the pad). The pool guy logs work there with the contractor passphrase — writable, but he never sees the sensitive fee.
         </div>
       </Card>
 

@@ -11,8 +11,9 @@ export const FLOW_SWITCH = 40;
 // Return path is a SERIES loop, not a parallel one: heater → pad valve → either
 // the waterfall's own line, or the under-deck trunk back to the deck RETURN
 // valve, which feeds the pool floor returns / spa jets. Every non-waterfall
-// return therefore passes through the deck valve — it is in-line for all
-// main-pool circulation.
+// return therefore passes through the return valve — it is in-line for all
+// main-pool circulation. `spillway` is the spa→pool overflow weir: a GRAVITY
+// edge, not pumped, so it's not on the pressure side.
 export const PRESSURE_SIDE = [
   "pumpFilter", "filterHeater", "heaterPad",
   "vwfFalls", "padTrunk", "retPool", "retSpa", "boostTap", "boostCleaner",
@@ -20,7 +21,8 @@ export const PRESSURE_SIDE = [
 
 // Legs downstream of the heater outlet — these are the ones that actually
 // carry heated water when the burner is lit. The booster/cleaner branch tees off
-// the heated return trunk (corrected 7/25), so it heats up too.
+// the heated return trunk (corrected 7/25), so it heats up too. The spillway
+// carries heated water too whenever the heated split-return is spilling.
 export const DOWNSTREAM_OF_HEATER = ["heaterPad", "vwfFalls", "padTrunk", "retPool", "retSpa", "boostTap", "boostCleaner"];
 
 // Legs downstream of the filter, where a dirty cartridge shows up as reduced
@@ -39,22 +41,27 @@ export function solve(s) {
     gpm = s.pump === "manual3" ? 70 : 45;
     if (s.filterDirty) gpm = Math.round(gpm * 0.55);
     if (s.vwf === "waterfall") gpm += 12;
-    // Suction side: pool, spa, or (split) both bodies at once.
-    if (s.deck === "spa") active.add("spaSuc");
-    else if (s.deck === "split") active.add("poolSuc").add("spaSuc");
+    // Suction side: the SUCTION valve draws from pool (normal) or spa (spa-heat).
+    if (s.suction === "spa") active.add("spaSuc");
     else active.add("poolSuc");
     active.add("deckPump").add("pumpFilter").add("filterHeater").add("heaterPad");
     // Return side. The pad valve either dumps the whole flow to the waterfall on
-    // its own line, or sends it back through the under-deck trunk to the deck
-    // RETURN valve, which then feeds the pool floor returns and/or spa jets. So
-    // in waterfall mode nothing returns to the bodies via the deck at all.
+    // its own line, or sends it back through the under-deck trunk to the RETURN
+    // valve, which feeds the pool floor returns and/or spa jets. So in waterfall
+    // mode nothing returns to the bodies via the deck at all.
     if (s.vwf === "waterfall") {
       active.add("vwfFalls");
     } else {
       active.add("padTrunk");
-      if (s.deck === "spa") active.add("retSpa");
-      else if (s.deck === "split") active.add("retSpa").add("retPool");
+      if (s.return === "spa") active.add("retSpa");
+      else if (s.return === "split") active.add("retSpa").add("retPool");
       else active.add("retPool");
+      // Designed spa→pool overflow weir. Whenever the return delivers ANY flow to
+      // the spa jets (split or full-spa) while the suction is NOT drawing the spa
+      // back down, the spa overfills and spills over the weir into the pool. In
+      // the daily config (return SPLIT, suction POOL) this runs on every pump
+      // cycle — it's the true resting water path, and a visible health check.
+      if ((s.return === "split" || s.return === "spa") && s.suction !== "spa") active.add("spillway");
       // The cleaner line tees off this heated return trunk downstream of the
       // heater (corrected 7/25). The Intermatic (right) powers the booster via
       // its lever: lever ON → the Polaris is DRIVEN (full cleaner flow); lever
@@ -72,6 +79,8 @@ export function solve(s) {
     if (gpm >= FLOW_SWITCH) {
       heaterStatus = "firing";
       DOWNSTREAM_OF_HEATER.forEach((e) => active.has(e) && heated.add(e));
+      // The weir spills whatever reaches the spa jets — heated when retSpa is.
+      if (active.has("spillway") && heated.has("retSpa")) heated.add("spillway");
     } else {
       heaterStatus = "lowflow";
       warnings.push(`~${gpm} GPM is under the ~${FLOW_SWITCH} GPM flow switch — heater won't fire. Justin's workaround: pad valve → WATERFALL. Real fix: clean the filter.`);
@@ -80,15 +89,19 @@ export function solve(s) {
   if (wantsHeat && s.pump === "schedule")
     warnings.push(`Heater left on ${s.heaterMode.toUpperCase()} — it WILL fire during the scheduled filter run (${s.pumpWindows.map(fmtWindow).join(", ")}), burning gas unattended. Return MODE to STANDBY after heating.`);
   if (wantsHeat && s.pump === "off") warnings.push("Heater mode set but pump is off — no flow, no fire.");
-  if (s.heaterMode === "spa" && s.deck === "pool") warnings.push("Heater in SPA mode but deck valves on POOL — pool water, spa thermostat.");
-  if (s.heaterMode === "pool" && s.deck === "spa") warnings.push("Heater in POOL mode but deck valves on SPA — spa can badly overheat.");
-  if (s.heaterMode !== "standby" && s.deck === "split") warnings.push("Deck valves at SPLIT — the heater warms BOTH pool and spa toward the current mode's setpoint. Fine for gentle whole-system heat, but slower than isolating one body; switch to POOL or SPA to heat one faster.");
-  // Spa drain-down: the pad valve is upstream of the deck return valve, so with
-  // it on WATERFALL the whole flow leaves over the falls and nothing returns to
-  // the deck. If the deck is drawing from the spa, the spa empties out the
-  // waterfall. No documented procedure produces this — only a wrong-order session.
-  if (pumpRunning && s.vwf === "waterfall" && (s.deck === "spa" || s.deck === "split"))
-    warnings.push("HAZARD: pad valve on WATERFALL while the deck valves draw from the SPA — spa water is pumped out over the waterfall with no return to the spa, draining it down. Put the pad valve back to POOL before running with the spa in suction.");
+  if (s.heaterMode === "spa" && !(s.suction === "spa" && s.return === "spa"))
+    warnings.push("Heater in SPA mode but the deck valves aren't both on SPA — to heat the spa alone, set SUCTION and RETURN both to SPA. As is, you're heating pool water toward the spa setpoint.");
+  if (s.heaterMode === "pool" && s.suction === "spa")
+    warnings.push("Heater in POOL mode but SUCTION is on SPA — you're circulating spa water on the pool thermostat; the spa can badly overheat.");
+  if (s.heaterMode !== "standby" && s.return === "split" && s.suction !== "spa")
+    warnings.push("Return valve at SPLIT while heating — heat is shared: some to the spa jets (then over the weir to the pool), the rest to the pool floor. Fine for gentle whole-system heat, but slower than isolating one body. To heat one fast, set both valves to it.");
+  // Spa drain-down, revised for the spillover config: the ONLY way to empty the
+  // spa is to draw it into suction (full SPA) AND divert the pad valve to the
+  // waterfall, so it leaves over the falls with no return. In the daily config
+  // (suction POOL) diverting to the waterfall is SAFE — the spa simply stops
+  // spilling and sits at its weir.
+  if (pumpRunning && s.vwf === "waterfall" && s.suction === "spa")
+    warnings.push("HAZARD: SUCTION on SPA while the pad valve is on WATERFALL — spa water is pumped out over the falls with no return, draining it down. Put SUCTION back to POOL before running the waterfall.");
 
   if (s.filterDirty) warnings.push("Filter flagged DIRTY — flow cut ~45% everywhere downstream.");
 

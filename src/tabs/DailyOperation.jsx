@@ -15,86 +15,94 @@ import { C, mono, cond, Card, Badge } from "../ui.jsx";
 const KEY_SIM = "pool-v4:sim";
 
 const P = {
-  pool: { x: 105, y: 150 }, spa: { x: 105, y: 360 }, vDeck: { x: 220, y: 255 },
+  pool: { x: 105, y: 150 }, spa: { x: 105, y: 360 },
+  vSuc: { x: 238, y: 205 }, vRet: { x: 188, y: 300 },
   pump: { x: 350, y: 210 }, filter: { x: 470, y: 210 }, heater: { x: 595, y: 210 },
   vWF: { x: 715, y: 210 }, waterfall: { x: 865, y: 210 },
   booster: { x: 470, y: 365 }, cleaner: { x: 660, y: 402 }, dial: { x: 320, y: 388 },
 };
 
-// Series-loop topology (refined 7/20): suction pool/spa → deck → pump; pressure
-// pump → filter → heater → pad valve; return pad valve → waterfall OR under-deck
-// trunk → deck return → floor returns / spa jets.
+// Series-loop topology (spillover config, 7/26): SUCTION valve (pool/spa) → pump;
+// pressure pump → filter → heater → pad valve; return pad valve → waterfall OR
+// under-deck trunk → RETURN valve → pool floor returns / spa jets. The spillway
+// is the designed spa→pool overflow weir (gravity — drawn separately below).
 const EDGES = [
-  { id: "poolSuc", d: `M ${P.pool.x + 45} ${P.pool.y} L ${P.vDeck.x - 34} ${P.pool.y} L ${P.vDeck.x} ${P.vDeck.y - 26}` },
-  { id: "spaSuc", d: `M ${P.spa.x + 45} ${P.spa.y} L ${P.vDeck.x - 34} ${P.spa.y} L ${P.vDeck.x} ${P.vDeck.y + 26}` },
-  { id: "deckPump", d: `M ${P.vDeck.x + 20} ${P.vDeck.y - 12} L ${P.pump.x - 42} ${P.pump.y}` },
+  { id: "poolSuc", d: `M ${P.pool.x + 45} ${P.pool.y} L ${P.vSuc.x - 24} ${P.pool.y} L ${P.vSuc.x} ${P.vSuc.y - 25}` },
+  { id: "spaSuc", d: `M ${P.spa.x + 45} ${P.spa.y} L ${P.vSuc.x - 24} ${P.spa.y} L ${P.vSuc.x} ${P.vSuc.y + 25}` },
+  { id: "deckPump", d: `M ${P.vSuc.x + 20} ${P.vSuc.y} L ${P.pump.x - 42} ${P.pump.y}` },
   { id: "pumpFilter", d: `M ${P.pump.x + 42} ${P.pump.y} L ${P.filter.x - 42} ${P.filter.y}` },
   { id: "filterHeater", d: `M ${P.filter.x + 42} ${P.filter.y} L ${P.heater.x - 42} ${P.heater.y}` },
   { id: "heaterPad", d: `M ${P.heater.x + 42} ${P.heater.y} L ${P.vWF.x - 26} ${P.vWF.y}` },
   { id: "vwfFalls", d: `M ${P.vWF.x + 22} ${P.vWF.y} L ${P.waterfall.x - 58} ${P.waterfall.y}` },
-  { id: "padTrunk", d: `M ${P.vWF.x} ${P.vWF.y + 26} L ${P.vWF.x} 292 L ${P.vDeck.x + 6} 292 L ${P.vDeck.x + 14} ${P.vDeck.y + 16}` },
-  { id: "retPool", d: `M ${P.vDeck.x - 18} ${P.vDeck.y - 12} L ${P.pool.x + 58} ${P.pool.y + 32}` },
-  { id: "retSpa", d: `M ${P.vDeck.x - 18} ${P.vDeck.y + 12} L ${P.spa.x + 58} ${P.spa.y - 32}` },
+  { id: "padTrunk", d: `M ${P.vWF.x} ${P.vWF.y + 26} L ${P.vWF.x} 292 L ${P.vRet.x} 292 L ${P.vRet.x} ${P.vRet.y - 14}` },
+  { id: "retPool", d: `M ${P.vRet.x - 12} ${P.vRet.y - 11} L ${P.pool.x + 58} ${P.pool.y + 32}` },
+  { id: "retSpa", d: `M ${P.vRet.x - 12} ${P.vRet.y + 11} L ${P.spa.x + 58} ${P.spa.y - 32}` },
   // booster/cleaner branch tees off the heated return TRUNK downstream of the
   // heater (corrected 7/25), not the filter output
   { id: "boostTap", d: `M ${P.booster.x} 292 L ${P.booster.x} ${P.booster.y - 28}` },
   { id: "boostCleaner", d: `M ${P.booster.x + 44} ${P.booster.y} L ${P.cleaner.x - 52} ${P.cleaner.y - 8}` },
 ];
 
+// The spa→pool overflow weir. A curved external channel hugging the left edges of
+// the two bodies — rendered distinctly (gravity cascade), not as a pumped pipe.
+const SPILLWAY_D = `M ${P.spa.x - 44} ${P.spa.y - 15} C 20 330 20 185 ${P.pool.x - 44} ${P.pool.y + 22}`;
+
 const PROCEDURES = {
   heatPool: {
     label: "Heat the pool",
     steps: [
-      "Deck valves → POOL (handles parallel to side of house)",
+      "SUCTION → POOL, RETURN → POOL (both handles parallel to the house) — isolates the pool so heat doesn't bleed to the spa",
       "Hayward heater: MODE button until POOL is lit",
       "Pad valve → POOL (handle up — its normal spot)",
       "IntelliFlo: press ON, then Speed 3 (3450 RPM)",
       "Self-stops after 3 h 10 min (Speed 3 Time Out)",
-      "WHEN DONE: heater MODE back to STANDBY — or it re-fires on the overnight filter run",
+      "WHEN DONE: heater MODE → STANDBY, RETURN back to SPLIT (the daily spillover config)",
     ],
-    state: { deck: "pool", vwf: "pool", heaterMode: "pool", pump: "manual3" },
+    state: { suction: "pool", return: "pool", vwf: "pool", heaterMode: "pool", pump: "manual3" },
   },
   heatPoolClogged: {
     label: "Heat pool — clogged-filter workaround",
     steps: [
       "Same as Heat the Pool, except:",
-      "Pad valve → WATERFALL (deck already POOL, so no spa-drain risk)",
+      "Pad valve → WATERFALL (SUCTION is on POOL, so there's no spa-drain risk — safe)",
       "Lower backpressure lets enough flow through the dirty filter for the heater's flow switch",
       "Real fix: have the filter cartridge cleaned",
-      "WHEN DONE: heater back to STANDBY",
+      "WHEN DONE: heater → STANDBY, pad valve → POOL, RETURN → SPLIT",
     ],
-    state: { deck: "pool", vwf: "waterfall", heaterMode: "pool", pump: "manual3" },
+    state: { suction: "pool", return: "pool", vwf: "waterfall", heaterMode: "pool", pump: "manual3" },
   },
   heatSpa: {
     label: "Heat the spa",
     steps: [
-      "Both deck valves → rotate 180° to SPA",
+      "SUCTION → SPA and RETURN → SPA (both handles rotated 180°) — this is the only time both go to SPA",
       "Hayward heater: MODE button until SPA is lit",
+      "Pad valve stays POOL — never WATERFALL while suction is on the spa (that would drain it)",
       "IntelliFlo: press ON, then Speed 3 (3450 RPM)",
       "Self-stops after 3 h 10 min",
-      "WHEN DONE: heater to STANDBY, deck valves back to SPLIT/POOL",
+      "WHEN DONE: heater → STANDBY, both valves back to the daily config (SUCTION POOL, RETURN SPLIT)",
     ],
-    state: { deck: "spa", vwf: "pool", heaterMode: "spa", pump: "manual3" },
+    state: { suction: "spa", return: "spa", vwf: "pool", heaterMode: "spa", pump: "manual3" },
   },
   waterfall: {
     label: "Waterfall show",
     steps: [
-      "DECK VALVES → POOL FIRST. At rest the deck sits at SPLIT; diverting the pad valve while split keeps drawing from the spa → the falls slowly drain it.",
-      "Then pad valve → WATERFALL",
+      "Leave SUCTION on POOL (the daily config) — with pool suction, diverting the falls is safe: the spa just stops spilling and rests at its weir",
+      "Pad valve → WATERFALL",
       "IntelliFlo: press ON, Speed 3 (or button 3 ≈ 2800 RPM)",
-      "WHEN DONE: pad valve back to POOL, deck back to SPLIT",
+      "WHEN DONE: pad valve → POOL (the spa resumes spilling over the weir)",
     ],
-    state: { deck: "pool", vwf: "waterfall", heaterMode: "standby", pump: "manual3" },
+    state: { suction: "pool", return: "split", vwf: "waterfall", heaterMode: "standby", pump: "manual3" },
   },
   daily: {
     label: "Normal day (hands off)",
     steps: [
-      "Deck valves rest at SPLIT — every pump run turns over both pool and spa",
+      "SUCTION rests on POOL, RETURN on SPLIT — every pump run filters the pool and tops the spa, which overflows back to the pool over the weir",
+      "The spillway pins the spa level automatically — no valve balancing, and the spa can't steal pool water",
       "IntelliFlo internal schedule runs filtration ~23 h/day",
       "Midday (dirty season): booster timer runs the Polaris hose cleaner",
       "Robot cleaner + surface skimmer self-manage; heater stays in STANDBY",
     ],
-    state: { deck: "split", vwf: "pool", heaterMode: "standby", pump: "schedule" },
+    state: { suction: "pool", return: "split", vwf: "pool", heaterMode: "standby", pump: "schedule" },
   },
 };
 
@@ -129,9 +137,10 @@ function TimerBadge({ x, y, lines }) {
   );
 }
 
-function ValveDot({ x, y, angle, label, sub, onTap }) {
+function ValveDot({ x, y, angle, label, sub, loc, onTap }) {
   return (
     <g transform={`translate(${x} ${y})`} onClick={onTap} style={{ cursor: "pointer" }}>
+      {loc && <text y="-30" textAnchor="middle" style={{ font: "600 8px 'IBM Plex Mono', monospace", fill: C.faint }}>{loc}</text>}
       <circle r="24" fill="#fff" stroke={C.valve} strokeWidth="2" />
       <g transform={`rotate(${angle})`} style={{ transition: "transform 220ms ease" }}>
         <rect x="-3.5" y="-22" width="7" height="27" rx="3" fill={C.valve} />
@@ -154,7 +163,7 @@ export default function DailyOperation({ config, update, now }) {
   const activeReal = toRealBands(active, clkOff);
 
   const [sim, setSim] = useState(() => ({
-    deck: config.valves.deck, vwf: config.valves.pad, heaterMode: "standby",
+    suction: config.valves.suction, return: config.valves.return, vwf: config.valves.pad, heaterMode: "standby",
     pump: "schedule", filterDirty: true, ...load(KEY_SIM, {}),
   }));
   const [proc, setProc] = useState(null);
@@ -198,10 +207,13 @@ export default function DailyOperation({ config, update, now }) {
         .heatdots { stroke-dasharray: 0.1 15; stroke-linecap: round; animation: dotflow 2.8s linear infinite; }
         /* weep = the always-open cleaner-port trickle (booster off): sparse, slow, thin */
         .weepdots { stroke-dasharray: 0.1 30; stroke-linecap: round; animation: weepflow 4s linear infinite; }
+        /* spillway = gravity overflow weir (spa→pool): short falling dashes, its own rhythm */
+        .spilldash { stroke-dasharray: 4 7; animation: spillfall 0.75s linear infinite; }
         @keyframes flow { to { stroke-dashoffset: -21; } }
         @keyframes dotflow { to { stroke-dashoffset: -26.2; } }
         @keyframes weepflow { to { stroke-dashoffset: -30.1; } }
-        @media (prefers-reduced-motion: reduce) { .flowdash, .heatdash, .flowdots, .heatdots, .weepdots { animation: none; } }
+        @keyframes spillfall { to { stroke-dashoffset: -11; } }
+        @media (prefers-reduced-motion: reduce) { .flowdash, .heatdash, .flowdots, .heatdots, .weepdots, .spilldash { animation: none; } }
       `}</style>
 
       <div style={{ display: "flex", gap: 8, flexWrap: "wrap", margin: "0 0 10px", font: mono(13, 600) }}>
@@ -238,6 +250,20 @@ export default function DailyOperation({ config, update, now }) {
             return <path key={e.id + "f"} className={cls} d={e.d} fill="none" stroke={col} strokeWidth={sw} strokeLinejoin="round" opacity={weep ? 0.8 : 1} />;
           })}
 
+          {/* Spillway — the designed spa→pool overflow weir (gravity, not pumped) */}
+          {(() => {
+            const on = r.active.has("spillway");
+            const col = r.heated.has("spillway") ? C.hot : C.flow;
+            return (
+              <g>
+                <path d={SPILLWAY_D} fill="none" stroke={C.pipe} strokeWidth="8" strokeLinecap="round" opacity="0.4" />
+                {on && <path className="spilldash" d={SPILLWAY_D} fill="none" stroke={col} strokeWidth="4.5" strokeLinecap="round" />}
+                <text x="20" y="255" textAnchor="middle" transform="rotate(-90 20 255)"
+                  style={{ font: "600 8.5px 'IBM Plex Mono', monospace", fill: on ? col : C.faint }}>spillway ⟂ weir</text>
+              </g>
+            );
+          })()}
+
           <Box x={P.pool.x} y={P.pool.y} label="POOL" sub="deep end cold" />
           <Box x={P.spa.x} y={P.spa.y} label="SPA" sub="round, in-ground" />
           <Box x={P.pump.x} y={P.pump.y} label="INTELLIFLO" sub={pumpSub} tone={r.pumpRunning ? C.ink : C.faint} onClick={cyclePump} />
@@ -251,7 +277,7 @@ export default function DailyOperation({ config, update, now }) {
 
           <text x={P.pool.x + 40} y={P.pool.y + 48} textAnchor="middle" style={{ font: "500 8.5px 'IBM Plex Mono', monospace", fill: C.faint }}>floor returns</text>
           <text x={P.spa.x + 40} y={P.spa.y - 40} textAnchor="middle" style={{ font: "500 8.5px 'IBM Plex Mono', monospace", fill: C.faint }}>spa jets</text>
-          <text x={P.vDeck.x + 150} y="304" textAnchor="middle" style={{ font: "500 8px 'IBM Plex Mono', monospace", fill: C.faint }}>under-deck return trunk</text>
+          <text x="430" y="286" textAnchor="middle" style={{ font: "500 8px 'IBM Plex Mono', monospace", fill: C.faint }}>under-deck return trunk</text>
           <Box x={P.booster.x} y={P.booster.y} label="POLARIS BOOST"
             sub={boostRunning ? "running" : boostWeep ? "off · port weeps" : bt.lever === "on" ? "on · no flow" : "off (seasonal)"}
             small w={116} tone={boostRunning ? C.ink : C.faint}
@@ -271,9 +297,12 @@ export default function DailyOperation({ config, update, now }) {
             {bt.dogsIn ? `timer: ${fmtWindow(bt)}` : `manual — lever ${bt.lever.toUpperCase()}`}
           </text>
 
-          <ValveDot x={P.vDeck.x} y={P.vDeck.y} angle={sim.deck === "pool" ? 0 : sim.deck === "split" ? 90 : 180} label="DECK PAIR"
-            sub={sim.deck === "pool" ? "parallel = POOL" : sim.deck === "split" ? "intermediate = SPLIT" : "180° = SPA"}
-            onTap={() => setS((p) => ({ deck: p.deck === "pool" ? "split" : p.deck === "split" ? "spa" : "pool" }))} />
+          <ValveDot x={P.vSuc.x} y={P.vSuc.y} angle={sim.suction === "pool" ? 0 : 180} label="SUCTION" loc="left · near-pad"
+            sub={sim.suction === "pool" ? "full POOL" : "SPA"}
+            onTap={() => setS((p) => ({ suction: p.suction === "pool" ? "spa" : "pool" }))} />
+          <ValveDot x={P.vRet.x} y={P.vRet.y} angle={sim.return === "pool" ? 0 : sim.return === "split" ? 90 : 180} label="RETURN" loc="right · near-spa · ←FLOW"
+            sub={sim.return === "pool" ? "POOL" : sim.return === "split" ? "SPLIT" : "SPA"}
+            onTap={() => setS((p) => ({ return: p.return === "pool" ? "split" : p.return === "split" ? "spa" : "pool" }))} />
           <ValveDot x={P.vWF.x} y={P.vWF.y} angle={sim.vwf === "pool" ? 0 : 90} label="PAD VALVE"
             sub={sim.vwf === "pool" ? "up = POOL (trunk)" : "WATERFALL"}
             onTap={() => setS((p) => ({ vwf: p.vwf === "pool" ? "waterfall" : "pool" }))} />
@@ -302,7 +331,7 @@ export default function DailyOperation({ config, update, now }) {
         <div key={i} style={{ background: "#FDF1EE", border: `1px solid ${C.warn}`, color: C.warn, borderRadius: 10, padding: "9px 12px", marginBottom: 7, font: mono(12.5) }}>⚠ {w}</div>
       ))}
       <div style={{ background: "#FBF6E7", border: `1px solid ${C.timer}`, color: C.timer, borderRadius: 10, padding: "9px 12px", marginBottom: 10, font: mono(12.5) }}>
-        RULE: any pad-valve diversion (waterfall) requires deck valves at POOL first — otherwise a spa fraction drains out the falls.
+        RULE: keep SUCTION on POOL except for a spa-heating session. With pool suction the waterfall is safe (the spa just stops spilling); the drain-down trap only exists with SUCTION on SPA + pad valve on WATERFALL. A flowing spillway during a pump run is the healthy resting state — a silent one mid-run is the anomaly to investigate.
       </div>
 
       {/* active schedule editor (per-window RPM, unmerged) */}
@@ -372,6 +401,8 @@ export default function DailyOperation({ config, update, now }) {
 
       <div style={{ font: mono(10.5), color: C.faint, lineHeight: 1.5 }}>
         Color = temperature (blue cold, red hot — red only after a firing heater) · pattern = flow (dashes normal, dots restricted after a dirty filter) · amber heater = armed but not lit · tap equipment/valves to simulate.
+        <br />
+        Spillway: the short falling dashes on the left are the spa's designed overflow weir back into the pool — it runs on every pump cycle in the daily config (RETURN split, SUCTION pool), which is why the spa never needs level-balancing. It carries heat (red) when the split-return is heated.
         <br />
         Cleaner line: solid flow = Polaris DRIVEN (Intermatic lever ON); a sparse slow trickle = the always-open port weep (booster off, but the tee is downstream of the heater so it runs hot during a heat run). Tap the dial lever or POLARIS BOOST to switch.
       </div>

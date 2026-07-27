@@ -127,8 +127,8 @@ export default function Commissioning({ config, update }) {
         <Recorder config={config} update={update} id="switchMap" placeholder="suction valve = … / return valve = …" />
       </TestCard>
 
-      <TestCard n={6} title="Spa drain-rate test → split-fraction f" badge={badgeFor(config.valves.splitFraction.prov)}
-        steps={["Suction valve at its split setting; rotate ONLY the return valve to full POOL.", "Spa drains at f×Q. Spa ≈ 38 ft² → 1\" of level ≈ 24 gal. Time the drop.", "f = drain GPM / total GPM. Side effect: level DROPS → you moved the return valve; RISES → suction. Label both."]}>
+      <TestCard n={6} title="Spa-loop flow → split-fraction f" badge={badgeFor(config.valves.splitFraction.prov)}
+        steps={["Note: in the daily config the WEIR pins the spa level, so removing return flow won't drain it — you must draw it down. SUCTION → SPA, RETURN → POOL.", "The spa now drains at the spa-loop rate. Spa ≈ 38 ft² → 1\" of level ≈ 24 gal. Time the drop → spa-loop GPM.", "f (the RETURN share sent to the spa jets in SPLIT) is the fraction that overflows the weir; cross-check with the dye test (7)."]}>
         <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", font: mono(11.5) }}>
           <span>split-fraction f</span>
           <NumField value={config.valves.splitFraction.val} step="0.01" min="0" width={80}
@@ -142,8 +142,8 @@ export default function Commissioning({ config, update }) {
         <Recorder config={config} update={update} id="dye" placeholder="half-fade time / implied f" />
       </TestCard>
 
-      <TestCard n={8} title="Waterfall + split drain verification" badge={badgeFor(prov("pending"))}
-        steps={["From resting SPLIT, pad valve → WATERFALL briefly.", "Does the spa level fall? Confirms series topology + the POOL-valves-first rule.", "STOP at the first measurable drop; restore valves."]}>
+      <TestCard n={8} title="Spillway + waterfall-safety verification" badge={badgeFor(prov("pending"))}
+        steps={["From the daily config (SUCTION pool, RETURN split), pad valve → WATERFALL briefly. The spa should HOLD at its weir — it just stops spilling. Confirms the diversion is SAFE with pool suction.", "Then SUCTION → SPA + waterfall: NOW the spa drains. Confirms the real hazard is suction-on-spa, not the pad valve itself.", "STOP at the first measurable drop; restore the daily config."]}>
         <Recorder config={config} update={update} id="waterfallDrain" placeholder="spa level fell? how fast?" />
       </TestCard>
 
@@ -157,8 +157,8 @@ export default function Commissioning({ config, update }) {
         <Recorder config={config} update={update} id="leftTimer" placeholder="loads on the left bus" />
       </TestCard>
 
-      <TestCard n={11} title="Spa-level stability (24 h at calibrated split)" badge={badgeFor(prov("pending"))}
-        steps={["After calibrating the split, watch spa level over a day. A moving level = the split has drifted."]}>
+      <TestCard n={11} title="Spillway health check (24 h)" badge={badgeFor(prov("pending"))}
+        steps={["With the designed weir, the spa level self-pins — so the real check is that the spillway actually FLOWS during pump runs (visible trickle over the weir).", "A dry weir mid-run means the return isn't reaching the spa (return not on SPLIT/SPA, or a blockage) — the anomaly the care-calendar glance watches for."]}>
         <Recorder config={config} update={update} id="spaStability" placeholder="level change over 24 h" />
       </TestCard>
 
@@ -275,7 +275,7 @@ export default function Commissioning({ config, update }) {
         <RemediationRow config={config} update={update} id="R2" title="R2 · Verify + lock the solar diverter in bypass"
           body="Confirm current position = bypass (it must be — pump→heater flows today), then disable the actuator: unplug its cable at the SunTouch end and/or use the actuator's manual toggle. Photograph the final state." />
         <RemediationRow config={config} update={update} id="R3" title="R3 · Paint-pen the pad"
-          body="Label pipes at confusion points ('to waterfall', 'spa return', 'cleaner line'); mark the calibrated deck-valve split positions on the collars (after tests 5/6); write 'POOL VALVES FIRST' at the pad valve." />
+          body="Label pipes at confusion points ('to waterfall', 'spa return', 'cleaner line'); label the two deck valves SUCTION (left/near-pad) and RETURN (right/near-spa) and mark the RETURN's daily SPLIT detent on its collar (after tests 5/6); write 'SUCTION → POOL BEFORE WATERFALL' at the pad valve." />
         <RemediationRow config={config} update={update} id="R4" title="R4 · Reconnect the SunTouch air sensor"
           body="Clears the flashing AIR Error. Meter the salvaged probe (~10 kΩ across the leads at ~77 °F = good); splice with gel-filled connectors, or fit a new Pentair 10 kΩ sensor (~$15–25) — two-wire, non-polarized, on the AIR terminals behind the deadfront (POWER OFF first); mount in shade. Set the SunTouch clock while in there. Turns the abandoned controller into a quiet, credible fallback + a working pad thermometer." />
         <RemediationRow config={config} update={update} id="R5" title="R5 · Set all pad clocks + promote the TOU schedule (one event)"

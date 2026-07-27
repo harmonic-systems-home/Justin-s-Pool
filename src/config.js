@@ -90,9 +90,18 @@ export const DEFAULT_CONFIG = {
   heater: { model: "H400 (inferred)", btu: 400000,
             prov: prov("est", "2026-07-16", "billing inference → ~400k BTU/hr H400; clock the meter to confirm (Commissioning 1)") },
 
+  // SPILLOVER config (corrected 7/26). The two in-ground deck valves are
+  // INDEPENDENT, not a ganged pair: a SUCTION select (LEFT sleeve, nearer the
+  // pad — draws to the pump) and a RETURN select (RIGHT sleeve, nearer the spa,
+  // carries the ←FLOW embossment — delivers to the spa jets / pool floor). The
+  // spa has a DESIGNED OVERFLOW WEIR into the pool, so in the daily config
+  // (suction=POOL, return=SPLIT) excess return spills back over the weir: the spa
+  // level is pinned, no balancing is ever needed, and the spa can't steal pool
+  // water. Full SPA (both valves 180°) is used only for spa-heating sessions.
+  // Terminology standard: SUCTION / RETURN only — never "supply" (ambiguous).
   valves: {
-    deck: "split", pad: "pool",
-    splitFraction: { val: 0.12, prov: prov("est", null, "target 10–15% to spa; calibrate via drain-rate test") },
+    suction: "pool", return: "split", pad: "pool",
+    splitFraction: { val: 0.12, prov: prov("est", null, "fraction of RETURN sent to the spa jets; excess spills over the weir. Calibrate via drain-rate test (full-SPA)") },
   },
 
   // Per-window RPM is first-class (CHANGES-REQUESTED #2): Speed 1 and Speed 2 stay

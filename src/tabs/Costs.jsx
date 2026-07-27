@@ -70,7 +70,7 @@ export default function Costs({ config, update, authed }) {
           <span style={{ color: C.pipe }}>|</span>
           <label>EV discount −<NumField value={rates.ev.discount} step="0.001" onChange={setEV} /></label>
         </div>
-        <div style={{ font: mono(10.5), color: C.faint, marginTop: 6 }}>Verify against Justin's SMUD bill (Commissioning 14); update annually. Weekday rates shown — weekends are all off-peak (cheaper). EV band = off-peak − discount, and requires the Tesla registered at this service address.</div>
+        <div style={{ font: mono(10.5), color: C.faint, marginTop: 6, lineHeight: 1.5 }}>Summer rates + the EV credit are <b>MEASURED</b> from Justin's SMUD bill (7/20/26; EV discount confirmed active). Winter is still the web schedule — capture from an Oct–May bill. Weekday rates shown — weekends are all off-peak (cheaper). EV band = off-peak − discount, and requires the Tesla registered at this service address. A ${rates.fixedMonthly}/mo fixed service charge applies to the whole account (shown below, excluded from the pump math).</div>
       </Card>
 
       <Card title={`Electric — pump (active schedule, ${season} weekday${clkOff ? ", REAL time" : ""})`}
@@ -119,6 +119,7 @@ export default function Costs({ config, update, authed }) {
       <Card title="Gas — heater" right={<Badge prov={config.heater.prov} />}>
         <div style={{ display: "flex", gap: 16, flexWrap: "wrap", font: mono(12), alignItems: "center", marginBottom: 8 }}>
           <label>$/therm <NumField value={gas.perTherm} step="0.05" min="0" onChange={(v) => setGas("perTherm", v)} /></label>
+          <span>Heater {config.heater.model ? <b>{config.heater.model}</b> : "—"}</span>
           <span>BTU input {btu ? <b>{btu.toLocaleString()}</b> : <span style={{ color: C.warn }}>pending — clock the gas meter (Commissioning)</span>}</span>
         </div>
         {btu ? (
@@ -149,6 +150,9 @@ export default function Costs({ config, update, authed }) {
             At {gal.toLocaleString()} gal (~{Math.round(gal * 8.34 / 1000)}k lbs): ~1.6 °F/hr (H250) to ~2.5 °F/hr (H400) → the 3:10 run ≈ 5–8 °F.
           </div>
         )}
+        <div style={{ font: mono(10.5), color: C.faint, marginTop: 8, lineHeight: 1.5 }}>
+          The house baseline already spends PG&E's cheap Tier-1 allowance (~0.39 therms/day), so every therm the pool heater burns is at the <b>marginal</b> price — Tier 2 $2.98 + PPP $0.121 + 2.5% county tax ≈ ${gas.perTherm}/therm (bill 7/16/26). A Speed-3 heat run is ~13 therms ≈ {money((btu / 100000) * gas.perTherm * 3.17, 0)}. The bill's daily-therms graph doubles as a heater-session log (spikes above the ~1 therm/day house baseline).
+        </div>
       </Card>
 
       <Card title="Pool service" right={<span style={{ font: mono(9, 700), color: C.warn, background: "#FDECE7", border: `1px solid ${C.warn}`, borderRadius: 5, padding: "1px 5px" }}>SENSITIVE</span>}>
@@ -173,6 +177,7 @@ export default function Costs({ config, update, authed }) {
               {haveFee
                 ? <>Pool service: <b>{money(feeNum)}/mo</b><br /><span style={{ font: cond(19) }}>Total ≈ {money(electricMo + feeNum)}/mo</span> <span style={{ color: C.faint, font: mono(10.5) }}>+ gas per heating session</span></>
                 : <><span style={{ font: cond(19) }}>Total ≈ {money(electricMo)}/mo</span> <span style={{ color: C.faint, font: mono(10.5) }}>— utilities only; unlock for the full total (pool service is sensitive) · + gas per session</span></>}
+              <div style={{ font: mono(10.5), color: C.faint, marginTop: 6 }}>+ SMUD fixed service charge {money(rates.fixedMonthly)}/mo (whole account, not the pump — excluded above). Gas billed per heat session (~{money((config.heater.btu / 100000) * gas.perTherm * 3.17, 0)} each).</div>
             </div>
           );
         })()}

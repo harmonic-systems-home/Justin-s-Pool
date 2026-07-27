@@ -1,0 +1,149 @@
+- generic [ref=e3]:
+  - generic [ref=e4]:
+    - generic [ref=e5]: JUSTIN'S POOL — SYSTEM MAP
+    - generic [ref=e6]: v4 · tabbed · surveyed July 2026
+    - generic [ref=e7]:
+      - button "↧ Export" [ref=e8] [cursor=pointer]
+      - button "↥ Import" [ref=e9] [cursor=pointer]
+      - button "Reset" [ref=e10] [cursor=pointer]
+  - generic [ref=e13]:
+    - generic [ref=e15]: Cloud sync
+    - generic [ref=e16]: not configured
+    - button "Settings" [ref=e18] [cursor=pointer]
+  - generic [ref=e19]:
+    - button "Daily Operation" [ref=e20] [cursor=pointer]
+    - button "Maintenance" [ref=e21] [cursor=pointer]
+    - button "Service Visits" [ref=e22] [cursor=pointer]
+    - button "Pool Design" [ref=e23] [cursor=pointer]
+    - button "IntelliFlo" [ref=e24] [cursor=pointer]
+    - button "Costs" [ref=e25] [cursor=pointer]
+    - button "What If" [ref=e26] [cursor=pointer]
+    - button "Commissioning" [ref=e27] [cursor=pointer]
+    - button "History" [ref=e28] [cursor=pointer]
+    - button "Photos" [ref=e29] [cursor=pointer]
+  - generic [ref=e30]:
+    - generic [ref=e31]:
+      - generic [ref=e32]:
+        - generic [ref=e33]: SMUD Time-of-Day rates
+        - generic [ref=e34]: EST
+      - generic [ref=e35]:
+        - generic [ref=e36]: Plan SMUD TOD (5–8 PM)
+        - generic [ref=e37]:
+          - text: Season
+          - combobox "Season" [ref=e38]:
+            - option "auto (summer)" [selected]
+            - option "summer"
+            - option "winter"
+        - generic [ref=e39]: peak 5–8 PM weekdays · mid-peak noon–5 + 8–mid · EV band midnight–6 AM
+      - generic [ref=e40]:
+        - generic [ref=e41]:
+          - text: Summer peak
+          - spinbutton "Summer peak" [ref=e43]: "0.3765"
+        - generic [ref=e44]:
+          - text: mid
+          - spinbutton "mid" [ref=e46]: "0.2139"
+        - generic [ref=e47]:
+          - text: "off"
+          - spinbutton "off" [ref=e49]: "0.155"
+        - generic [ref=e50]: "|"
+        - generic [ref=e51]:
+          - text: Winter peak
+          - spinbutton "Winter peak" [ref=e53]: "0.1776"
+        - generic [ref=e54]:
+          - text: "off"
+          - spinbutton "off" [ref=e56]: "0.1285"
+        - generic [ref=e57]: "|"
+        - generic [ref=e58]:
+          - text: EV discount −
+          - spinbutton "EV discount −" [ref=e60]: "0.015"
+      - generic [ref=e61]: Summer rates + the EV credit are MEASURED from Justin's SMUD bill (7/20/26; EV discount confirmed active). Winter is still the web schedule — capture from an Oct–May bill. Weekday rates shown — weekends are all off-peak (cheaper). EV band = off-peak − discount, and requires the Tesla registered at this service address. A $27/mo fixed service charge applies to the whole account (shown below, excluded from the pump math).
+    - generic [ref=e62]:
+      - generic [ref=e63]:
+        - generic [ref=e64]: Electric — pump (active schedule, summer weekday, REAL time)
+        - generic [ref=e65]: priced at real run-time (clock 10 h off)
+      - table [ref=e68]:
+        - rowgroup [ref=e69]:
+          - row [ref=e70]:
+            - columnheader "Band" [ref=e71]
+            - columnheader "kWh/d" [ref=e72]
+            - columnheader "peak kWh" [ref=e73]
+            - columnheader "mid kWh" [ref=e74]
+            - columnheader "off kWh" [ref=e75]
+            - columnheader "EV kWh" [ref=e76]
+            - columnheader "$/day" [ref=e77]
+        - rowgroup [ref=e78]:
+          - row [ref=e79]:
+            - cell "Speed 1 3250" [ref=e80]
+            - cell "15.34" [ref=e81]
+            - cell "5.69" [ref=e82]
+            - cell "7.59" [ref=e83]
+            - cell "0.00" [ref=e84]
+            - cell "2.06" [ref=e85]
+            - cell "$4.05" [ref=e86]
+          - row [ref=e87]:
+            - cell "Speed 2 3000" [ref=e88]
+            - cell "4.40" [ref=e89]
+            - cell "0.00" [ref=e90]
+            - cell "0.00" [ref=e91]
+            - cell "0.00" [ref=e92]
+            - cell "4.40" [ref=e93]
+            - cell "$0.62" [ref=e94]
+          - row [ref=e95]:
+            - cell "Speed 5 1350" [ref=e96]
+            - cell "1.64" [ref=e97]
+            - cell "0.00" [ref=e98]
+            - cell "0.67" [ref=e99]
+            - cell "0.82" [ref=e100]
+            - cell "0.16" [ref=e101]
+            - cell "$0.29" [ref=e102]
+          - row [ref=e103]:
+            - cell "Total" [ref=e104]
+            - cell "21.4" [ref=e105]
+            - cell "5.7" [ref=e106]
+            - cell "8.3" [ref=e107]
+            - cell "0.8" [ref=e108]
+            - cell "6.6" [ref=e109]
+            - cell "$4.96/day" [ref=e110]
+      - generic [ref=e111]:
+        - generic [ref=e112]:
+          - generic [ref=e113]: Monthly (weekday×30)
+          - generic [ref=e114]: $149/mo
+        - generic [ref=e115]:
+          - generic [ref=e116]: Turnovers/day
+          - generic [ref=e117]: "3.9"
+          - generic [ref=e118]: 1.0 = residential std
+        - generic [ref=e119]:
+          - generic [ref=e120]: Efficiency
+          - generic [ref=e121]: 2,886 gal/kWh
+        - generic [ref=e122]:
+          - generic [ref=e123]: Water moved
+          - generic [ref=e124]: 61,702 gal/day
+      - generic [ref=e125]: Turnover from flow ∝ RPM (0.02 GPM/RPM, est) against pool volume 15,708 gal. 4× turnovers is the fingerprint of the removed solar's flow needs, not a water-quality spec (1.0/day is the residential standard). Monthly = weekday $/day × 30 (a slight overestimate — weekends are all off-peak).
+    - generic [ref=e126]:
+      - generic [ref=e127]:
+        - generic [ref=e128]: Gas — heater
+        - generic [ref=e129]: PENDING
+      - generic [ref=e130]:
+        - generic [ref=e131]:
+          - text: $/therm
+          - spinbutton "$/therm" [ref=e133]: "2.2"
+        - generic [ref=e134]: Heater —
+        - generic [ref=e135]: BTU input pending — clock the gas meter (Commissioning)
+      - generic [ref=e136]: "When BTU lands: $/hr = BTU/100k × $/therm; $/session = ×3.17 h (heat-pool egg timer); °F/session = BTU×0.8 / (pool lbs) × hours. At 15,708 gal (~131k lbs): ~1.6 °F/hr (H250) to ~2.5 °F/hr (H400) → the 3:10 run ≈ 5–8 °F."
+      - generic [ref=e137]: The house baseline already spends PG&E's cheap Tier-1 allowance (~0.39 therms/day), so every therm the pool heater burns is at the marginal price — Tier 2 $2.98 + PPP $0.121 + 2.5% county tax ≈ $2.2/therm (bill 7/16/26). A Speed-3 heat run is ~13 therms ≈ $0. The bill's daily-therms graph doubles as a heater-session log (spikes above the ~1 therm/day house baseline).
+    - generic [ref=e138]:
+      - generic [ref=e139]:
+        - generic [ref=e140]: Pool service
+        - generic [ref=e141]: SENSITIVE
+      - generic [ref=e142]: "Monthly pool-guy fee: 🔒 unlock in Cloud sync to view"
+      - generic [ref=e143]: "Sensitive: this value lives only in the private data repo and arrives only with the pool password, so the shareable URL stays safe to hand to the pool guy or other workers."
+    - generic [ref=e144]:
+      - generic [ref=e145]: Monthly picture
+      - generic [ref=e147]:
+        - text: "Electric (pump):"
+        - generic [ref=e148]: $149/mo
+        - generic [ref=e149]: (summer weekday × 30)
+        - generic [ref=e150]: Total ≈ $149/mo
+        - text: — utilities only; unlock for the full total (pool service is sensitive) · + gas per session
+        - generic [ref=e151]: + SMUD fixed service charge $27/mo (whole account, not the pump — excluded above). Gas billed per heat session (~$0 each).
+  - generic [ref=e152]: One config object drives every tab; Commissioning writes measured values back into it (flipping EST/PENDING → MEASURED). Export/Import moves that record between devices.

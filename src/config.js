@@ -25,18 +25,25 @@ export const DEFAULT_CONFIG = {
   rates: {
     // SMUD Time-of-Day (5–8 PM peak). Fair Oaks is SMUD electric — PG&E supplies
     // only the gas. Seasonal, weekday-based, with a midnight–6 AM EV discount band
-    // (the cheapest energy on the calendar, and a target window). Verify vs
-    // Justin's bill (Commissioning 14) and update annually.
-    // Fixed weekday periods: peak 5–8 PM; summer mid-peak noon–5 PM + 8 PM–mid;
-    // off-peak everything else; EV band midnight–6 AM = off-peak − discount.
+    // (the cheapest energy on the calendar, and a target window).
+    // SUMMER rates + EV credit are MEASURED off Justin's bill (7/20/26, period
+    // 6/17–7/16); WINTER rates are still the web schedule (capture from an Oct–May
+    // bill). Fixed weekday periods: peak 5–8 PM; summer mid-peak noon–5 PM +
+    // 8 PM–mid; off-peak everything else + all weekend hours; EV band midnight–6 AM
+    // = off-peak − discount. fixedMonthly is the whole-account service charge —
+    // shown in Costs but EXCLUDED from the marginal schedule math.
     electric: {
       plan: "SMUD TOD (5–8 PM)", season: "auto",
       summer: { peak: 0.3765, midPeak: 0.2139, offPeak: 0.1550 },
       winter: { peak: 0.1776, offPeak: 0.1285 },
       ev: { enabled: true, discount: 0.015 },
-      prov: prov("est", null, "SMUD TOD 2026 structure — verify vs bill (Commissioning 14)"),
+      fixedMonthly: 27,
+      prov: prov("measured", "2026-07-20", "summer + EV MEASURED from SMUD bill 7/20/26 (EV credit confirmed active, 444 kWh credited); winter still web"),
     },
-    gas: { perTherm: 2.20, prov: prov("est", null, "PG&E ~$/therm — editable") },
+    // PG&E gas, Rate G1 S (residential, tiered). The Tier-1 allowance (~0.39
+    // therms/day) is spent by the house baseline, so ALL pool-heating gas burns at
+    // the MARGINAL price: Tier 2 $2.98 + PPP $0.121 + 2.5% county tax ≈ $3.15/therm.
+    gas: { perTherm: 3.15, prov: prov("measured", "2026-07-16", "PG&E bill 7/16/26, G1 S: marginal Tier 2 $2.98 + PPP $0.121 + 2.5% tax ≈ $3.15/therm") },
   },
 
   pump: {
@@ -76,8 +83,12 @@ export const DEFAULT_CONFIG = {
     intermaticRight: { label: "Intermatic (right)", offsetMin: 0, prov: prov("measured", "2026-07-18", "correct") },
   },
 
-  heater: { model: null, btu: null,
-            prov: prov("pending", null, "rating plate illegible — clock the gas meter, see Commissioning") },
+  // Rating plate illegible, but the 7/16/26 bill's daily-therms spikes (~11–15
+  // therms over the ~1-therm house baseline, ÷ the 3:10 session ⇒ 3.5–4.7 therms/hr
+  // ≈ 350–470k BTU/hr) pin it to an H400. EST until the meter is clocked — that's
+  // now confirmation, not discovery (Commissioning test 1).
+  heater: { model: "H400 (inferred)", btu: 400000,
+            prov: prov("est", "2026-07-16", "billing inference → ~400k BTU/hr H400; clock the meter to confirm (Commissioning 1)") },
 
   valves: {
     deck: "split", pad: "pool",

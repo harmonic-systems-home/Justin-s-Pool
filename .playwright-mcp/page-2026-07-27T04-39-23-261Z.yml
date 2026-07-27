@@ -1,0 +1,153 @@
+- generic [ref=f1e3]:
+  - generic [ref=f1e4]:
+    - generic [ref=f1e5]: JUSTIN'S POOL — SYSTEM MAP
+    - generic [ref=f1e6]: v4 · tabbed · surveyed July 2026
+    - generic [ref=f1e7]:
+      - button "↧ Export" [ref=f1e8] [cursor=pointer]
+      - button "↥ Import" [ref=f1e9] [cursor=pointer]
+      - button "Reset" [ref=f1e10] [cursor=pointer]
+  - generic [ref=f1e13]:
+    - generic [ref=f1e15]: Cloud sync
+    - generic [ref=f1e16]: not configured
+    - button "Settings" [ref=f1e18] [cursor=pointer]
+  - generic [ref=f1e19]:
+    - button "Daily Operation" [ref=f1e20] [cursor=pointer]
+    - button "Maintenance" [ref=f1e21] [cursor=pointer]
+    - button "Service Visits" [ref=f1e22] [cursor=pointer]
+    - button "Pool Design" [ref=f1e23] [cursor=pointer]
+    - button "IntelliFlo" [ref=f1e24] [cursor=pointer]
+    - button "Costs" [ref=f1e25] [cursor=pointer]
+    - button "What If" [ref=f1e26] [cursor=pointer]
+    - button "Commissioning" [ref=f1e27] [cursor=pointer]
+    - button "History" [ref=f1e28] [cursor=pointer]
+    - button "Photos" [ref=f1e29] [cursor=pointer]
+  - generic [ref=f1e178]:
+    - generic [ref=f1e179]:
+      - generic [ref=f1e180]:
+        - generic [ref=f1e181]: Proposed vs active
+        - button "Promote to active →" [ref=f1e183] [cursor=pointer]
+      - table [ref=f1e185]:
+        - rowgroup [ref=f1e186]:
+          - row [ref=f1e187]:
+            - columnheader "Metric" [ref=f1e188]
+            - columnheader "Active" [ref=f1e189]
+            - columnheader "Proposed" [ref=f1e190]
+            - columnheader "Δ" [ref=f1e191]
+        - rowgroup [ref=f1e192]:
+          - row [ref=f1e193]:
+            - cell "kWh / day" [ref=f1e194]
+            - cell "21.4" [ref=f1e195]
+            - cell "6.4" [ref=f1e196]
+            - cell "-15.0" [ref=f1e197]
+          - row [ref=f1e198]:
+            - cell "Cost / month" [ref=f1e199]
+            - cell "$149" [ref=f1e200]
+            - cell "$30" [ref=f1e201]
+            - cell "$-118" [ref=f1e202]
+          - row [ref=f1e203]:
+            - cell "Turnovers / day" [ref=f1e204]
+            - cell "3.9" [ref=f1e205]
+            - cell "2.1" [ref=f1e206]
+            - cell "-1.8" [ref=f1e207]
+          - row [ref=f1e208]:
+            - cell "Pool turnover (×0.88 at split)" [ref=f1e209]
+            - cell "3.5" [ref=f1e210]
+            - cell "1.9" [ref=f1e211]
+            - cell "-1.6" [ref=f1e212]
+          - row [ref=f1e213]:
+            - cell "gal / kWh" [ref=f1e214]
+            - cell "2,886" [ref=f1e215]
+            - cell "5,224" [ref=f1e216]
+            - cell "+2,338" [ref=f1e217]
+      - generic [ref=f1e218]: "Current is priced at its real run-time (the pump clock is 10 h off, so the daytime block actually straddles peak); the proposal assumes R5 sets the clock right, so it runs at face value — which is a chunk of the saving. The proposed long-low profile shifts volume off-peak (cube law: flow ∝ RPM, power ∝ RPM³) while still holding >2× the residential-standard turnover. Pool-at-split uses split-fraction f=0.12. \"Promote\" copies this draft into the active schedule and logs the change."
+    - generic [ref=f1e219]:
+      - generic [ref=f1e220]: Proposed 24-hour schedule
+      - generic [ref=f1e222]:
+        - generic [ref=f1e223]:
+          - generic [ref=f1e224]: 24-hour clock agreement
+          - generic [ref=f1e225]: four clocks, nothing coordinating them
+        - img [ref=f1e226]:
+          - generic [ref=f1e227]: 12A
+          - generic [ref=f1e229]: 3A
+          - generic [ref=f1e231]: 6A
+          - generic [ref=f1e233]: 9A
+          - generic [ref=f1e235]: 12P
+          - generic [ref=f1e237]: 3P
+          - generic [ref=f1e239]: 6P
+          - generic [ref=f1e241]: 9P
+          - generic [ref=f1e243]: 12P
+          - generic [ref=f1e245]:
+            - generic [ref=f1e246]: TOU RATE
+            - generic [ref=f1e247]: SMUD TOD (5–8 PM) · summer
+            - generic [ref=f1e249]: 14¢ EV
+            - generic [ref=f1e252]: 16¢
+            - generic [ref=f1e255]: 21¢
+            - generic [ref=f1e258]: 38¢ pk
+            - generic [ref=f1e261]: 21¢
+          - generic [ref=f1e264]:
+            - generic [ref=f1e265]: INTELLIFLO
+            - generic [ref=f1e266]: filtration
+            - generic [ref=f1e268]: 2600 RPM · $0.77/day
+            - generic [ref=f1e271]: "1350"
+            - generic [ref=f1e274]: 1350 RPM · $0.25/day
+          - generic [ref=f1e277]:
+            - generic [ref=f1e278]: INTERMATIC
+            - generic [ref=f1e279]: Polaris boost
+          - generic [ref=f1e283]:
+            - generic [ref=f1e284]: HAYWARD
+            - generic [ref=f1e285]: standby
+            - generic [ref=f1e287]: STANDBY — will not fire
+          - generic [ref=f1e288]: now
+        - generic [ref=f1e290]:
+          - generic [ref=f1e291]: filtration ~$1.02/day · SMUD TOD (5–8 PM) (summer weekday) · deeper blue = higher RPM
+          - text: · booster 9:30 AM–11:30 AM
+    - generic [ref=f1e292]:
+      - generic [ref=f1e293]: Draft schedule (editable)
+      - generic [ref=f1e295]:
+        - table [ref=f1e296]:
+          - rowgroup [ref=f1e297]:
+            - row [ref=f1e298]:
+              - columnheader "Band" [ref=f1e299]
+              - columnheader "RPM" [ref=f1e300]
+              - columnheader "Start → End" [ref=f1e301]
+              - columnheader "Hrs" [ref=f1e302]
+              - columnheader "kWh" [ref=f1e303]
+              - columnheader "$/day" [ref=f1e304]
+              - columnheader [ref=f1e305]
+              - columnheader [ref=f1e306]
+          - rowgroup [ref=f1e307]:
+            - row [ref=f1e308]:
+              - cell "Turnover" [ref=f1e309]
+              - cell [ref=f1e310]:
+                - spinbutton [ref=f1e312]: "2600"
+              - cell "06:55 → 12:00" [ref=f1e313]:
+                - generic [ref=f1e314]:
+                  - textbox [ref=f1e315]: 06:55
+                  - generic [ref=f1e316]: →
+                  - textbox [ref=f1e317]: 12:00
+              - cell "5.08" [ref=f1e318]
+              - cell "4.94" [ref=f1e319]
+              - cell "$0.77" [ref=f1e320]
+              - cell "EST 2026-07-20" [ref=f1e321]:
+                - generic "§6.5 draft" [ref=f1e322]: EST 2026-07-20
+              - cell [ref=f1e323]:
+                - button "×" [ref=f1e324] [cursor=pointer]
+            - row [ref=f1e325]:
+              - cell "Overnight" [ref=f1e326]
+              - cell [ref=f1e327]:
+                - spinbutton [ref=f1e329]: "1350"
+              - cell "20:00 → 06:55" [ref=f1e330]:
+                - generic [ref=f1e331]:
+                  - textbox [ref=f1e332]: 20:00
+                  - generic [ref=f1e333]: →
+                  - textbox [ref=f1e334]: 06:55
+              - cell "10.92" [ref=f1e335]
+              - cell "1.49" [ref=f1e336]
+              - cell "$0.25" [ref=f1e337]
+              - cell "EST 2026-07-20" [ref=f1e338]:
+                - generic "§6.5 draft" [ref=f1e339]: EST 2026-07-20
+              - cell [ref=f1e340]:
+                - button "×" [ref=f1e341] [cursor=pointer]
+        - button "+ add band" [ref=f1e342] [cursor=pointer]
+      - generic [ref=f1e343]: "§6.5 draft: ~2600 RPM turnover 6:55a–noon + 1350 overnight, 12–8 PM off (robot skimmer covers the surface). Booster (dogs in) 9:30–11:30, inside the turnover window."
+  - generic [ref=f1e177]: One config object drives every tab; Commissioning writes measured values back into it (flipping EST/PENDING → MEASURED). Export/Import moves that record between devices.

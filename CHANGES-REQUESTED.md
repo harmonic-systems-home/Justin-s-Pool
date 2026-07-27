@@ -30,15 +30,18 @@ Artifact used `window.storage` (claude.ai-only API). Confirm the deployed page u
 ### 6. Rate table is the wrong utility — replace PG&E E-TOU-C with SMUD TOD (CRITICAL for cost credibility)
 The timeline labels "E-TOU-C: 44¢/61¢" — that is a **PG&E** rate schedule. Fair Oaks electricity is **SMUD** (PG&E supplies only the gas). This inflates all $ figures ~2.8×: shown savings $214/mo, correct ≈ **$78–80/mo**. kWh math (21.4 → 6.4) is CORRECT — only the price multiplier is wrong.
 
-Replace with SMUD Time-of-Day (5–8 p.m.) 2026 structure as an editable seasonal table (verify against Justin's actual bill; update annually):
+Replace with SMUD Time-of-Day (5–8 p.m.) — **summer values now MEASURED from Justin's bill (7/20/26); weekday-only qualifier on mid/peak is from the bill itself:**
 | Season | Period | Hours | $/kWh |
 |---|---|---|---|
-| Summer (Jun 1–Sep 30) | Peak | Wkdy 5–8 PM | 0.3765 |
-| Summer | Mid-peak | Wkdy noon–5 PM, 8 PM–midnight | 0.2139 |
-| Summer | Off-peak | midnight–noon + weekends/holidays | 0.1550 |
-| Winter (Oct–May) | Peak | Wkdy 5–8 PM | 0.1776 |
-| Winter | Off-peak | all other hours | 0.1285 |
-| **All year** | **EV discount band** | **midnight–6 AM** | **−0.015 on above** |
+| Summer (Jun 1–Sep 30) | Peak | **Wkdy** 5–8 PM | **0.3765 (bill)** |
+| Summer | Mid-peak | **Wkdy** noon–5 PM, 8 PM–midnight | **0.2139 (bill)** |
+| Summer | Off-peak | midnight–noon + **all weekend hours** | **0.1550 (bill)** |
+| Winter (Oct–May) | Peak | Wkdy 5–8 PM | 0.1776 (web — capture from a winter bill) |
+| Winter | Off-peak | all other hours | 0.1285 (web — capture from a winter bill) |
+| **All year** | **EV discount band** | **midnight–6 AM** | **−0.015 (bill; CONFIRMED ACTIVE)** |
+Fixed charge $27/mo — show in Costs but exclude from marginal schedule math.
+
+**Savings revision with real-time placement (clock offset) + measured rates: current pool electric ≈ $135/mo — the pump is ~170 of the bill's 359 peak kWh (half the household's peak usage); proposed ≈ $30/mo → savings ≈ $105/mo** (supersedes both the $214 PG&E-rate error and the $78–80 flat-rate estimate).
 
 **Segregate the midnight–6 AM EV band as its own rate period in the model — it affects the calculus and is a target window:**
 - It's the cheapest energy on the calendar (summer ≈ 14.0¢, winter ≈ 11.35¢) and coincides with Tesla charging hours.

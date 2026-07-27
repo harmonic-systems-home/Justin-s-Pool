@@ -70,7 +70,7 @@ export default function Costs({ config, update, authed }) {
           <span style={{ color: C.pipe }}>|</span>
           <label>EV discount −<NumField value={rates.ev.discount} step="0.001" onChange={setEV} /></label>
         </div>
-        <div style={{ font: mono(10.5), color: C.faint, marginTop: 6, lineHeight: 1.5 }}>Summer rates + the EV credit are <b>MEASURED</b> from Justin's SMUD bill (7/20/26; EV discount confirmed active). Winter is still the web schedule — capture from an Oct–May bill. Weekday rates shown — weekends are all off-peak (cheaper). EV band = off-peak − discount, and requires the Tesla registered at this service address. A ${rates.fixedMonthly}/mo fixed service charge applies to the whole account (shown below, excluded from the pump math).</div>
+        <div style={{ font: mono(10.5), color: C.faint, marginTop: 6, lineHeight: 1.5 }}>Summer rates + the EV credit are <b>MEASURED</b> from Justin's SMUD bill (7/20/26; EV discount confirmed active). Winter is still the web schedule — capture from an Oct–May bill. Weekday rates shown — weekends are all off-peak (cheaper). EV band = off-peak − discount, and requires the Tesla registered at this service address. (SMUD's ~$27/mo fixed service charge isn't shown — it's a whole-account cost Justin pays with or without the pool.)</div>
       </Card>
 
       <Card title={`Electric — pump (active schedule, ${season} weekday${clkOff ? ", REAL time" : ""})`}
@@ -177,7 +177,7 @@ export default function Costs({ config, update, authed }) {
               {haveFee
                 ? <>Pool service: <b>{money(feeNum)}/mo</b><br /><span style={{ font: cond(19) }}>Total ≈ {money(electricMo + feeNum)}/mo</span> <span style={{ color: C.faint, font: mono(10.5) }}>+ gas per heating session</span></>
                 : <><span style={{ font: cond(19) }}>Total ≈ {money(electricMo)}/mo</span> <span style={{ color: C.faint, font: mono(10.5) }}>— utilities only; unlock for the full total (pool service is sensitive) · + gas per session</span></>}
-              <div style={{ font: mono(10.5), color: C.faint, marginTop: 6 }}>+ SMUD fixed service charge {money(rates.fixedMonthly)}/mo (whole account, not the pump — excluded above). Gas billed per heat session (~{money((config.heater.btu / 100000) * gas.perTherm * 3.17, 0)} each).</div>
+              <div style={{ font: mono(10.5), color: C.faint, marginTop: 6 }}>+ gas billed per heat session (~{money((config.heater.btu / 100000) * gas.perTherm * 3.17, 0)} each).</div>
             </div>
           );
         })()}

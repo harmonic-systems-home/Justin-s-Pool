@@ -30,14 +30,14 @@ export const DEFAULT_CONFIG = {
     // 6/17–7/16); WINTER rates are still the web schedule (capture from an Oct–May
     // bill). Fixed weekday periods: peak 5–8 PM; summer mid-peak noon–5 PM +
     // 8 PM–mid; off-peak everything else + all weekend hours; EV band midnight–6 AM
-    // = off-peak − discount. fixedMonthly is the whole-account service charge —
-    // shown in Costs but EXCLUDED from the marginal schedule math.
+    // = off-peak − discount. (SMUD's ~$27/mo fixed service charge is deliberately
+    // NOT modeled — Justin pays it whether or not the pool exists, so it's not a
+    // pool cost.)
     electric: {
       plan: "SMUD TOD (5–8 PM)", season: "auto",
       summer: { peak: 0.3765, midPeak: 0.2139, offPeak: 0.1550 },
       winter: { peak: 0.1776, offPeak: 0.1285 },
       ev: { enabled: true, discount: 0.015 },
-      fixedMonthly: 27,
       prov: prov("measured", "2026-07-20", "summer + EV MEASURED from SMUD bill 7/20/26 (EV credit confirmed active, 444 kWh credited); winter still web"),
     },
     // PG&E gas, Rate G1 S (residential, tiered). The Tier-1 allowance (~0.39

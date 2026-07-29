@@ -3,13 +3,17 @@
 // Holds the fine-grained GitHub PAT (Contents-only, PRIVATE data repo) as a
 // secret so the public app never sees it. The app calls GET/PUT `/data`.
 //
-// TWO ROLES, scoped here at the Worker (branch on which passphrase authenticated):
+// THREE ROLES, scoped here at the Worker (branch on which passphrase authenticated):
 //   FAMILY     (FAMILY_PASSPHRASE, or legacy POOL_PASSPHRASE) — full: writes the
 //              whole document, reads sensitive fields.
 //   CONTRACTOR (CONTRACTOR_PASSPHRASE) — writes ONLY the `visitLog` namespace
 //              (read-modify-write, can't touch anything else) and reads PUBLIC
 //              only: the sensitive `private` bucket is stripped from its reads,
 //              so the pool guy can log work without ever seeing the fee.
+//   PUBLIC     (no/invalid passphrase) — READ ONLY, and gets the same redacted
+//              view as the contractor (the `private` bucket stripped). This is
+//              what makes the page a public, config-free demo: any visitor GETs
+//              the current data minus the two private fields. Writes are refused.
 //
 // Secrets: GH_TOKEN, FAMILY_PASSPHRASE (or POOL_PASSPHRASE), CONTRACTOR_PASSPHRASE
 // Vars (wrangler.toml): OWNER, REPO, FILE_PATH, ALLOW_ORIGIN
@@ -71,19 +75,22 @@ export default {
     if (request.method === "OPTIONS") return new Response(null, { status: 204, headers: cors(env) });
     if (url.pathname !== "/data") return json({ error: "not found" }, 404, env);
 
-    const role = roleFor(request.headers.get("X-Pool-Auth") || "", env);
-    if (!role) return json({ error: "unauthorized" }, 401, env);
+    const role = roleFor(request.headers.get("X-Pool-Auth") || "", env); // "family" | "contractor" | null
 
     const path = env.FILE_PATH || "results.json";
 
     try {
       if (request.method === "GET") {
+        // Only FAMILY sees the private bucket. Contractor AND anonymous public get
+        // the redacted view — so an unauthenticated visitor reads the current data
+        // minus the sensitive fields.
         const { doc, sha } = await readDoc(env, path);
-        const out = role === "contractor" ? publicView(doc) : doc;
-        return json({ json: out, sha, role }, 200, env);
+        const out = role === "family" ? doc : publicView(doc);
+        return json({ json: out, sha, role: role || "public" }, 200, env);
       }
 
       if (request.method === "PUT") {
+        if (!role) return json({ error: "unauthorized" }, 401, env); // writing still needs a password
         let body;
         try { body = await request.json(); } catch { return json({ error: "bad body" }, 400, env); }
 

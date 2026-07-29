@@ -10,8 +10,11 @@ import { C, mono, TextField } from "./ui.jsx";
 // refetch → merge → retry.
 
 const KEY_SYNC = "pool-v4:sync";
+// The Worker URL is public (not a secret) — baking it in lets EVERY visitor
+// auto-load the redacted public view with no configuration.
+const DEFAULT_WORKER_URL = "https://justins-pool-data.popperbiz.workers.dev";
 const DEFAULT_SYNC = {
-  mode: "worker", workerUrl: "", passphrase: "",
+  mode: "worker", workerUrl: DEFAULT_WORKER_URL, passphrase: "",
   owner: "harmonic-systems-home", repo: "Justin-s-Pool-data", path: "results.json", token: "",
   by: "", autosync: true, sha: null, role: null,
 };
@@ -22,6 +25,7 @@ export default function SyncPanel({ config, setConfig, onAuthChange }) {
   const [status, setStatus] = useState({ state: "idle", msg: "" });
   const lastSynced = useRef(null); // JSON string last pushed/pulled — suppresses echo saves
   const hydrated = useRef(false);  // has THIS device pulled the record this session?
+  const publicLoaded = useRef(false);
   const timer = useRef(null);
 
   // Only the FAMILY role unlocks sensitive fields. GitHub-direct = full access;
@@ -34,6 +38,18 @@ export default function SyncPanel({ config, setConfig, onAuthChange }) {
   const setField = (k, v) => persist({ ...sc, [k]: v });
   const configured = isConfigured(sc);
 
+  // PUBLIC auto-load: every visitor, no config, fetches the redacted public view
+  // on mount so the page always shows the current published data. If the viewer
+  // is family-configured, the authed hydrate below handles it instead (full view,
+  // incl. private fields). If the Worker is unreachable, we silently fall back to
+  // the built-in defaults.
+  useEffect(() => {
+    if (publicLoaded.current) return;
+    publicLoaded.current = true;
+    if (isConfigured(sc)) return; // family/contractor path handled by hydrate
+    publicLoad();
+  }, []);
+
   // Auto-pull the store of record on load (and the moment this device first
   // becomes configured). This is the guard against the overwrite trap: a device
   // must PULL the record before it's allowed to auto-save, so a stale local copy
@@ -44,6 +60,23 @@ export default function SyncPanel({ config, setConfig, onAuthChange }) {
     if (!configured || hydrated.current) return;
     hydrateFromCloud();
   }, [configured, sc.workerUrl, sc.passphrase, sc.token]);
+
+  async function publicLoad() {
+    const workerUrl = sc.workerUrl || DEFAULT_WORKER_URL;
+    if (!workerUrl) return;
+    setStatus({ state: "syncing", msg: "loading…" });
+    try {
+      const remote = await pull({ mode: "worker", workerUrl, passphrase: "" }); // no passphrase → public view
+      if (remote.json) {
+        setConfig(loadConfig(remote.json));
+        setStatus({ state: "ok", msg: "showing published data (read-only)" });
+      } else {
+        setStatus({ state: "idle", msg: "" });
+      }
+    } catch {
+      setStatus({ state: "idle", msg: "" }); // Worker down → built-in defaults
+    }
+  }
 
   // Debounced auto-save on config change — only AFTER a successful pull.
   useEffect(() => {
@@ -139,7 +172,7 @@ export default function SyncPanel({ config, setConfig, onAuthChange }) {
         <span style={{ width: 9, height: 9, borderRadius: "50%", background: dot, display: "inline-block" }} />
         <span style={{ font: mono(12, 600), color: C.ink }}>Cloud sync</span>
         <span style={{ font: mono(11), color: status.state === "error" ? C.warn : C.faint }}>
-          {configured ? (status.msg || (sc.autosync ? "auto-save on" : "manual")) : "not configured"}
+          {status.msg || (configured ? (sc.autosync ? "auto-save on" : "manual") : "read-only — enter the password in Settings to edit")}
         </span>
         <div style={{ marginLeft: "auto", display: "flex", gap: 6 }}>
           {configured && <button style={tool} onClick={doPush}>Sync now</button>}

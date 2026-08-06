@@ -19,8 +19,22 @@ const DEFAULT_SYNC = {
   by: "", autosync: true, sha: null, role: null,
 };
 
-export default function SyncPanel({ config, setConfig, onAuthChange }) {
-  const [sc, setSc] = useState(() => ({ ...DEFAULT_SYNC, ...load(KEY_SYNC, {}) }));
+// The password can arrive via the URL (#…&key=PASS) as well as Settings — a
+// bookmarkable owner link, or a QR that logs the pool guy in as Service. Read it
+// before the tab router strips the hash; which ROLE it grants is decided by the
+// Worker, so the same param works for either.
+function readUrlKey() {
+  if (typeof location === "undefined") return "";
+  const seg = location.hash.replace(/^#/, "").split("&").find((s) => s.startsWith("key="));
+  return seg ? decodeURIComponent(seg.slice(4)) : "";
+}
+
+export default function SyncPanel({ config, setConfig, onAuthChange, onLevel }) {
+  const bootKey = useRef(readUrlKey()).current; // captured on first render, before the hash is normalized
+  const [sc, setSc] = useState(() => {
+    const base = { ...DEFAULT_SYNC, ...load(KEY_SYNC, {}) };
+    return bootKey ? { ...base, mode: "worker", workerUrl: base.workerUrl || DEFAULT_WORKER_URL, passphrase: bootKey } : base;
+  });
   const [open, setOpen] = useState(false);
   const [status, setStatus] = useState({ state: "idle", msg: "" });
   const lastSynced = useRef(null); // JSON string last pushed/pulled — suppresses echo saves
@@ -33,6 +47,14 @@ export default function SyncPanel({ config, setConfig, onAuthChange }) {
   // contractor passphrase never flips this true, and never receives the data.
   const familyAuthed = sc.mode === "github" ? !!sc.token : sc.role === "family";
   useEffect(() => { onAuthChange?.(familyAuthed); }, [familyAuthed]);
+
+  // Privilege level for the header badge. Role is confirmed by the Worker (or the
+  // GitHub PAT), so it shows View-Only until a login is verified.
+  const roleNow = sc.mode === "github" ? (sc.token ? "family" : null) : sc.role;
+  const level = roleNow === "family" ? "owner" : roleNow === "contractor" ? "service" : "view";
+  useEffect(() => { onLevel?.(level); }, [level]);
+  // Persist a URL-provided password on this device so it sticks after the hash is normalized.
+  useEffect(() => { if (bootKey) save(KEY_SYNC, sc); }, []);
 
   const persist = (next) => { setSc(next); save(KEY_SYNC, next); };
   const setField = (k, v) => persist({ ...sc, [k]: v });

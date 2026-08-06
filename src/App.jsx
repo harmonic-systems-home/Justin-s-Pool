@@ -43,10 +43,11 @@ export default function App() {
   // code straight to Service Visits — falling back to the last-used tab.
   const validTab = (id) => TABS.some((t) => t.id === id);
   const [tab, setTab] = useState(() => {
-    const h = location.hash.replace(/^#/, "");
+    const h = location.hash.replace(/^#/, "").split("&")[0]; // tab is the first segment; a #…&key=… login param is ignored here
     return validTab(h) ? h : load(KEY_TAB, "daily");
   });
   const [authed, setAuthed] = useState(false);
+  const [level, setLevel] = useState("view"); // owner | service | view — privilege badge
   const firstCfg = useRef(true);
   const importRef = useRef(null);
 
@@ -120,6 +121,15 @@ export default function App() {
 
       <div style={{ display: "flex", alignItems: "baseline", gap: 12, flexWrap: "wrap" }}>
         <div style={{ font: cond(24) }}>JUSTIN'S POOL — SYSTEM MAP</div>
+        {(() => {
+          const B = {
+            owner: { label: "Owner", bg: "#E7F6EE", bd: C.ok, fg: "#1E5647" },
+            service: { label: "Service", bg: "#FBF6E7", bd: C.timer, fg: "#7A5A1E" },
+            view: { label: "View-Only", bg: "#EEF1F0", bd: C.pipe, fg: C.faint },
+          }[level];
+          return <span title="Your access level (from the saved password or a URL login)"
+            style={{ font: mono(11, 700), letterSpacing: "0.03em", padding: "3px 10px", borderRadius: 20, background: B.bg, border: `1.5px solid ${B.bd}`, color: B.fg }}>{B.label}</span>;
+        })()}
         <div style={{ font: mono(11), color: C.faint }}>v4 · tabbed · surveyed July 2026</div>
         <div style={{ marginLeft: "auto", display: "flex", gap: 6 }}>
           <button style={tool} onClick={exportJSON} title="download the whole config as JSON">↧ Export</button>
@@ -130,7 +140,7 @@ export default function App() {
         </div>
       </div>
 
-      <div style={{ marginTop: 10 }}><SyncPanel config={config} setConfig={setConfig} onAuthChange={setAuthed} /></div>
+      <div style={{ marginTop: 10 }}><SyncPanel config={config} setConfig={setConfig} onAuthChange={setAuthed} onLevel={setLevel} /></div>
 
       {/* tab bar — browser-style folder tabs on a shared baseline */}
       <div style={{ display: "flex", gap: 3, flexWrap: "wrap", alignItems: "flex-end", margin: "6px 0 10px", borderBottom: `1px solid ${C.pipe}`, paddingLeft: 2 }}>

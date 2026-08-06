@@ -1,0 +1,174 @@
+- generic [ref=e3]:
+  - generic [ref=e4]:
+    - generic [ref=e5]: JUSTIN'S POOL — SYSTEM MAP
+    - generic "Your access level (from the saved password or a URL login)" [ref=e6]: View-Only
+    - generic [ref=e7]: v4 · tabbed · surveyed July 2026
+    - generic [ref=e8]:
+      - button "↧ Export" [ref=e9] [cursor=pointer]
+      - button "↥ Import" [ref=e10] [cursor=pointer]
+      - button "Reset" [ref=e11] [cursor=pointer]
+  - generic [ref=e14]:
+    - generic [ref=e16]: Cloud sync
+    - generic [ref=e17]: loading…
+    - button "Settings" [ref=e19] [cursor=pointer]
+  - generic [ref=e20]:
+    - button "Daily Operation" [ref=e21] [cursor=pointer]
+    - button "Maintenance" [ref=e22] [cursor=pointer]
+    - button "Service Visits" [ref=e23] [cursor=pointer]
+    - button "Pool Design" [ref=e24] [cursor=pointer]
+    - button "IntelliFlo" [ref=e25] [cursor=pointer]
+    - button "Costs" [ref=e26] [cursor=pointer]
+    - button "What If" [ref=e27] [cursor=pointer]
+    - button "Commissioning" [ref=e28] [cursor=pointer]
+    - button "History" [ref=e29] [cursor=pointer]
+    - button "Photos" [ref=e30] [cursor=pointer]
+  - generic [ref=e31]:
+    - generic [ref=e32]:
+      - generic [ref=e33]:
+        - generic [ref=e34]: Speed register — the active schedule
+        - generic [ref=e35]: derived from the schedule
+      - table [ref=e37]:
+        - rowgroup [ref=e38]:
+          - row [ref=e39]:
+            - columnheader "#" [ref=e40]
+            - columnheader "Mode" [ref=e41]
+            - columnheader "RPM" [ref=e42]
+            - columnheader "Start–Stop / duration (pump clock)" [ref=e43]
+            - columnheader "Runs (real)" [ref=e44]
+            - columnheader "Watts" [ref=e45]
+        - rowgroup [ref=e46]:
+          - row [ref=e47]:
+            - cell "1" [ref=e48]
+            - cell "Schedule · Speed 1" [ref=e49]:
+              - text: Schedule
+              - generic [ref=e50]: · Speed 1
+            - cell "3250 RPM" [ref=e51]
+            - cell "07:00–15:05" [ref=e52]
+            - cell "5:00 PM–1:05 AM" [ref=e53]
+            - cell "1898 W ~" [ref=e54]:
+              - generic "affinity-law estimate" [ref=e55]: 1898 W ~
+          - row [ref=e56]:
+            - cell "2" [ref=e57]
+            - cell "Schedule · Speed 2" [ref=e58]:
+              - text: Schedule
+              - generic [ref=e59]: · Speed 2
+            - cell "3000 RPM" [ref=e60]
+            - cell "15:05–18:02" [ref=e61]
+            - cell "1:05 AM–4:02 AM" [ref=e62]
+            - cell "1492 W ~" [ref=e63]:
+              - generic "affinity-law estimate" [ref=e64]: 1492 W ~
+          - row [ref=e65]:
+            - cell "3" [ref=e66]
+            - cell "Schedule · Speed 5" [ref=e67]:
+              - text: Schedule
+              - generic [ref=e68]: · Speed 5
+            - cell "1350 RPM" [ref=e69]
+            - cell "18:50–06:55" [ref=e70]
+            - cell "4:50 AM–4:55 PM" [ref=e71]
+            - cell "136 W" [ref=e72]:
+              - generic "measured" [ref=e73]: 136 W
+          - row [ref=e74]:
+            - cell "4" [ref=e75]
+            - cell "Egg timer · Heat pool" [ref=e76]:
+              - text: Egg timer
+              - generic [ref=e77]: · Heat pool
+            - cell "3450 RPM" [ref=e78]
+            - cell "190 min" [ref=e79]
+            - cell "—" [ref=e80]
+            - cell "2398 W" [ref=e81]:
+              - generic "measured" [ref=e82]: 2398 W
+          - row [ref=e83]:
+            - cell "5" [ref=e84]
+            - cell "Manual · Manual utility" [ref=e85]:
+              - text: Manual
+              - generic [ref=e86]: · Manual utility
+            - cell "3030 RPM" [ref=e87]
+            - cell "on-demand button" [ref=e88]
+            - cell "—" [ref=e89]
+            - cell "1538 W ~" [ref=e90]:
+              - generic "affinity-law estimate" [ref=e91]: 1538 W ~
+          - row [ref=e92]:
+            - cell "6" [ref=e93]
+            - cell "Disabled" [ref=e94]
+            - cell "—" [ref=e95]
+            - cell "—" [ref=e96]
+            - cell "—" [ref=e97]
+            - cell "—" [ref=e98]
+          - row [ref=e99]:
+            - cell "7" [ref=e100]
+            - cell "Disabled" [ref=e101]
+            - cell "—" [ref=e102]
+            - cell "—" [ref=e103]
+            - cell "—" [ref=e104]
+            - cell "—" [ref=e105]
+          - row [ref=e106]:
+            - cell "8" [ref=e107]
+            - cell "Disabled" [ref=e108]
+            - cell "—" [ref=e109]
+            - cell "—" [ref=e110]
+            - cell "—" [ref=e111]
+            - cell "—" [ref=e112]
+      - generic [ref=e113]: Driven off the active schedule — the same data Daily Operation & Costs use — plus the on-demand speeds (heat run, manual). Promoting a schedule on What-If updates this automatically, so it can't drift. To change the schedule, edit it on Daily Operation or What-If. Watts marked ~ are affinity-law estimates; the rest are measured. "Runs (real)" applies the IntelliFlo clock offset.
+    - generic [ref=e114]:
+      - generic [ref=e115]: Operating procedures
+      - generic [ref=e117]:
+        - link "↗ IntelliFlo VS+SVRS owner's manual (PDF)" [ref=e118] [cursor=pointer]:
+          - /url: reference/IntelliFlo-VS-SVRS-Owners-Manual.pdf
+        - text: — the emulator's menu tree is built from it.
+      - button "▸ 1 · INSPECT (read-only, safe)" [ref=e120] [cursor=pointer]
+      - button "▸ 2 · CONTROL (daily operation, no settings touched)" [ref=e122] [cursor=pointer]
+      - button "▸ 3 · UPDATE (settings changes)" [ref=e124] [cursor=pointer]
+      - button "▸ 4 · SET TIME (fix the clock — R5)" [ref=e126] [cursor=pointer]
+    - generic [ref=e127]:
+      - generic [ref=e128]:
+        - generic [ref=e129]: Practice emulator
+        - generic [ref=e130]: sandbox — never touches config
+      - generic [ref=e131]:
+        - generic [ref=e132]:
+          - generic [ref=e133]:
+            - generic [ref=e134]:
+              - generic [ref=e135]: SVRS
+              - generic [ref=e136]: 9:21a
+            - generic [ref=e137]: 3250 RPM
+            - generic [ref=e138]:
+              - generic [ref=e139]: T 0.00
+              - generic [ref=e140]: 1898 WATTS
+            - generic [ref=e141]: Running Speed 1
+          - generic [ref=e147]:
+            - button "Speed 1" [ref=e148] [cursor=pointer]: Speed1
+            - button "Speed 2" [ref=e149] [cursor=pointer]: Speed2
+            - button "Speed 3" [ref=e150] [cursor=pointer]: Speed3
+            - button "Speed 4" [ref=e151] [cursor=pointer]: Speed4
+          - generic [ref=e152]:
+            - button "Select ✗" [ref=e154] [cursor=pointer]: Select✗
+            - button "Escape ←" [ref=e156] [cursor=pointer]: Escape←
+          - generic [ref=e157]:
+            - generic [ref=e158]:
+              - generic [ref=e159]: ✓
+              - generic [ref=e161]: "!"
+              - generic [ref=e163]: 🔔
+            - generic [ref=e165]:
+              - button "▲" [ref=e166] [cursor=pointer]
+              - button "◀" [ref=e167] [cursor=pointer]
+              - button "⏎" [ref=e168] [cursor=pointer]
+              - button "▶" [ref=e169] [cursor=pointer]
+              - button "▼" [ref=e170] [cursor=pointer]
+            - button "☰ Menu" [ref=e172] [cursor=pointer]: ☰Menu
+          - generic [ref=e178]:
+            - button "Quick Clean" [ref=e179] [cursor=pointer]: QuickClean
+            - button "Time Out" [ref=e180] [cursor=pointer]: TimeOut
+            - button "Start Stop" [ref=e181] [cursor=pointer]:
+              - generic [ref=e182]: Start
+              - generic [ref=e183]: Stop
+            - button "Reset" [ref=e184] [cursor=pointer]
+        - generic [ref=e185]:
+          - generic [ref=e186]: Drill
+          - combobox [ref=e187]:
+            - option "Free play" [selected]
+            - option "Read a speed's Mode + RPM (no changes)"
+            - option "Start a Speed 3 heat run"
+            - option "Set the clock (R5 rehearsal)"
+            - option "Change a setting and save it"
+          - generic [ref=e188]: "Armed: schedule is running (menu use doesn't stop it)."
+          - generic [ref=e189]: Menu tree from the owner's manual (linked above). Speed 1–8 shows this pump's real register; other branches show the manual's factory defaults — the real pad's values differ, so verify on inspection. Firmware may vary; when the real pump diverges, photograph it.
+  - generic [ref=e190]: One config object drives every tab; Commissioning writes measured values back into it (flipping EST/PENDING → MEASURED). Export/Import moves that record between devices.

@@ -53,8 +53,14 @@ export default function SyncPanel({ config, setConfig, onAuthChange, onLevel }) 
   const roleNow = sc.mode === "github" ? (sc.token ? "family" : null) : sc.role;
   const level = roleNow === "family" ? "owner" : roleNow === "contractor" ? "service" : "view";
   useEffect(() => { onLevel?.(level); }, [level]);
-  // Persist a URL-provided password on this device so it sticks after the hash is normalized.
-  useEffect(() => { if (bootKey) save(KEY_SYNC, sc); }, []);
+  // Persist a URL-provided password on this device, then strip it from the address
+  // bar (keeping any tab segment) so it isn't left sitting in the URL.
+  useEffect(() => {
+    if (!bootKey) return;
+    save(KEY_SYNC, sc);
+    const rest = location.hash.replace(/^#/, "").split("&").filter((s) => !s.startsWith("key=")).join("&");
+    history.replaceState(null, "", rest ? `#${rest}` : location.pathname + location.search);
+  }, []);
 
   const persist = (next) => { setSc(next); save(KEY_SYNC, next); };
   const setField = (k, v) => persist({ ...sc, [k]: v });

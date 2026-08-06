@@ -2,12 +2,13 @@ name = "justins-pool-data"
 main = "worker.js"
 compatibility_date = "2026-01-01"
 
-# Non-secret config. Point ALLOW_ORIGIN at the Pages site exactly (no trailing slash).
+# Non-secret config. ALLOW_ORIGIN is a comma-separated allow-list of exact origins
+# (no trailing slash); the Worker echoes whichever one the request came from.
 [vars]
 OWNER = "harmonic-systems-home"
 REPO = "Justin-s-Pool-data"
 FILE_PATH = "results.json"
-ALLOW_ORIGIN = "https://harmonic-systems-home.github.io"
+ALLOW_ORIGIN = "https://harmonic-systems-home.github.io,https://justins-pool.pages.dev"
 
 # Secrets are NOT stored here. Set them after `wrangler deploy`:
 #   wrangler secret put GH_TOKEN               # fine-grained PAT, Contents R/W, PRIVATE data repo only

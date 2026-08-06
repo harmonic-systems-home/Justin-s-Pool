@@ -21,16 +21,24 @@
 const b64encode = (str) => btoa(unescape(encodeURIComponent(str)));
 const b64decode = (b64) => decodeURIComponent(escape(atob(b64)));
 
-function cors(env) {
+// ALLOW_ORIGIN may be a comma-separated allow-list (e.g. the github.io Pages site
+// AND a Cloudflare Pages URL). CORS can only echo ONE origin, so we match the
+// request's Origin against the list and echo it back; Vary:Origin keeps caches
+// honest. Falls back to the first listed origin (or * if unset).
+function cors(env, request) {
+  const list = (env.ALLOW_ORIGIN || "*").split(",").map((s) => s.trim()).filter(Boolean);
+  const origin = request?.headers.get("Origin") || "";
+  const allow = list.includes(origin) ? origin : (list[0] || "*");
   return {
-    "Access-Control-Allow-Origin": env.ALLOW_ORIGIN || "*",
+    "Access-Control-Allow-Origin": allow,
+    "Vary": "Origin",
     "Access-Control-Allow-Methods": "GET, PUT, OPTIONS",
     "Access-Control-Allow-Headers": "Content-Type, X-Pool-Auth",
     "Access-Control-Max-Age": "86400",
   };
 }
-const json = (body, status, env) =>
-  new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json", ...cors(env) } });
+const json = (body, status, env, request) =>
+  new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json", ...cors(env, request) } });
 
 const gh = (env, path, init = {}) =>
   fetch(`https://api.github.com/repos/${env.OWNER}/${env.REPO}/contents/${path}`, {
@@ -72,8 +80,8 @@ async function readDoc(env, path) {
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
-    if (request.method === "OPTIONS") return new Response(null, { status: 204, headers: cors(env) });
-    if (url.pathname !== "/data") return json({ error: "not found" }, 404, env);
+    if (request.method === "OPTIONS") return new Response(null, { status: 204, headers: cors(env, request) });
+    if (url.pathname !== "/data") return json({ error: "not found" }, 404, env, request);
 
     const role = roleFor(request.headers.get("X-Pool-Auth") || "", env); // "family" | "contractor" | null
 
@@ -86,13 +94,13 @@ export default {
         // minus the sensitive fields.
         const { doc, sha } = await readDoc(env, path);
         const out = role === "family" ? doc : publicView(doc);
-        return json({ json: out, sha, role: role || "public" }, 200, env);
+        return json({ json: out, sha, role: role || "public" }, 200, env, request);
       }
 
       if (request.method === "PUT") {
-        if (!role) return json({ error: "unauthorized" }, 401, env); // writing still needs a password
+        if (!role) return json({ error: "unauthorized" }, 401, env, request); // writing still needs a password
         let body;
-        try { body = await request.json(); } catch { return json({ error: "bad body" }, 400, env); }
+        try { body = await request.json(); } catch { return json({ error: "bad body" }, 400, env, request); }
 
         if (role === "contractor") {
           // Read-modify-write ONLY the visitLog namespace. Nothing the contractor
@@ -102,9 +110,9 @@ export default {
           const put = { message: `Update visit log (by ${body.by || "contractor"})`, content: b64encode(JSON.stringify(merged, null, 2)) };
           if (sha) put.sha = sha;
           const res = await gh(env, path, { method: "PUT", body: JSON.stringify(put) });
-          if (res.status === 409 || res.status === 422) return json({ error: "conflict" }, 409, env);
-          if (!res.ok) return json({ error: "github", status: res.status }, 502, env);
-          return json({ sha: (await res.json()).content.sha, role }, 200, env);
+          if (res.status === 409 || res.status === 422) return json({ error: "conflict" }, 409, env, request);
+          if (!res.ok) return json({ error: "github", status: res.status }, 502, env, request);
+          return json({ sha: (await res.json()).content.sha, role }, 200, env, request);
         }
 
         // family: full write, sha-guarded (client resolves 409).
@@ -114,14 +122,14 @@ export default {
         };
         if (body.sha) put.sha = body.sha;
         const res = await gh(env, path, { method: "PUT", body: JSON.stringify(put) });
-        if (res.status === 409 || res.status === 422) return json({ error: "conflict" }, 409, env);
-        if (!res.ok) return json({ error: "github", status: res.status }, 502, env);
-        return json({ sha: (await res.json()).content.sha, role }, 200, env);
+        if (res.status === 409 || res.status === 422) return json({ error: "conflict" }, 409, env, request);
+        if (!res.ok) return json({ error: "github", status: res.status }, 502, env, request);
+        return json({ sha: (await res.json()).content.sha, role }, 200, env, request);
       }
     } catch (e) {
-      return json({ error: String(e.message || e) }, 502, env);
+      return json({ error: String(e.message || e) }, 502, env, request);
     }
 
-    return json({ error: "method" }, 405, env);
+    return json({ error: "method" }, 405, env, request);
   },
 };

@@ -29,6 +29,20 @@ function readUrlKey() {
   return seg ? decodeURIComponent(seg.slice(4)) : "";
 }
 
+// Union two append-only logs so a concurrent writer's additions are never lost
+// during conflict resolution (the generic merge would replace the whole array).
+// Dedupe by id when present, else by full-content JSON; remote entries first.
+function mergeLog(remote, local) {
+  const seen = new Set(), out = [];
+  for (const e of [...(remote || []), ...(local || [])]) {
+    const k = e && e.id ? `id:${e.id}` : JSON.stringify(e);
+    if (seen.has(k)) continue;
+    seen.add(k);
+    out.push(e);
+  }
+  return out;
+}
+
 export default function SyncPanel({ config, setConfig, onAuthChange, onLevel }) {
   const bootKey = useRef(readUrlKey()).current; // captured on first render, before the hash is normalized
   const [sc, setSc] = useState(() => {
@@ -131,7 +145,7 @@ export default function SyncPanel({ config, setConfig, onAuthChange, onLevel }) 
         // Cloud is empty — this device will seed it. Safe to auto-save.
         lastSynced.current = JSON.stringify(config);
         persist({ ...sc, sha: remote.sha, role: remote.role });
-        setStatus({ state: "ok", msg: "cloud empty — Sync now to seed it" });
+        setStatus({ state: "ok", msg: "cloud empty — seeds on your first edit" });
       }
       hydrated.current = true; // auto-save now permitted
     } catch (e) {
@@ -141,7 +155,7 @@ export default function SyncPanel({ config, setConfig, onAuthChange, onLevel }) 
 
   async function doPush() {
     if (!hydrated.current) {
-      setStatus({ state: "error", msg: "load the cloud copy first (Pull cloud) — protects the shared record" });
+      setStatus({ state: "error", msg: "load the cloud copy first (Refresh from cloud) — protects the shared record" });
       return;
     }
     setStatus({ state: "syncing", msg: "saving…" });
@@ -162,6 +176,10 @@ export default function SyncPanel({ config, setConfig, onAuthChange, onLevel }) 
     try {
       const remote = await pull(sc);
       const merged = mergeConfigs(remote.json || {}, localSnapshot); // local wins scalars, keyed objects union
+      // Append-only logs union both sides, so a concurrent writer's visit/history
+      // entry is preserved instead of being overwritten by whichever saves last.
+      merged.visitLog = mergeLog(remote.json?.visitLog, localSnapshot.visitLog);
+      merged.history = mergeLog(remote.json?.history, localSnapshot.history);
       const full = loadConfig(merged);
       lastSynced.current = JSON.stringify(full);
       setConfig(full);
@@ -177,7 +195,7 @@ export default function SyncPanel({ config, setConfig, onAuthChange, onLevel }) 
     setStatus({ state: "syncing", msg: "loading…" });
     try {
       const remote = await pull(sc);
-      if (!remote.json) { persist({ ...sc, sha: remote.sha, role: remote.role }); hydrated.current = true; setStatus({ state: "ok", msg: "cloud is empty — Sync now to seed it" }); return; }
+      if (!remote.json) { persist({ ...sc, sha: remote.sha, role: remote.role }); hydrated.current = true; setStatus({ state: "ok", msg: "cloud is empty — seeds on your first edit" }); return; }
       const full = loadConfig(remote.json);
       lastSynced.current = JSON.stringify(full);
       setConfig(full);
@@ -203,8 +221,9 @@ export default function SyncPanel({ config, setConfig, onAuthChange, onLevel }) 
           {status.msg || (configured ? (sc.autosync ? "auto-save on" : "manual") : "read-only — enter the password in Settings to edit")}
         </span>
         <div style={{ marginLeft: "auto", display: "flex", gap: 6 }}>
-          {configured && <button style={tool} onClick={doPush}>Sync now</button>}
-          {configured && <button style={tool} onClick={doPull} title="overwrite local with the cloud copy">Pull cloud</button>}
+          {/* Auto-save handles saving, so "Save now" only appears if auto-save is off. */}
+          {configured && !sc.autosync && <button style={tool} onClick={doPush}>Save now</button>}
+          {configured && <button style={tool} onClick={doPull} title="replace what's on screen with the saved cloud copy (picks up other devices' changes)">Refresh from cloud</button>}
           <button style={tool} onClick={() => setOpen((o) => !o)}>{open ? "Close" : "Settings"}</button>
         </div>
       </div>

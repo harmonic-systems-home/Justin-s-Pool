@@ -16,7 +16,10 @@ export default function ServiceVisits({ config, update }) {
   const addVisit = () => {
     // Date alone (the default) isn't a visit — require some actual content.
     if (!visit.psi && !visit.notes && Object.values(visit.work).every((v) => !v)) return;
-    update((d) => { d.visitLog.unshift({ ...visit, work: { ...visit.work } }); });
+    // Stable id so concurrent-write merges union entries reliably (never dedupe
+    // two distinct visits that happen to share content).
+    const id = (typeof crypto !== "undefined" && crypto.randomUUID) ? crypto.randomUUID() : `v${Date.now()}`;
+    update((d) => { d.visitLog.unshift({ id, ...visit, work: { ...visit.work } }); });
     setVisit({ date: today(), work: {}, psi: "", rpm: "3030", notes: "", by: "" });
   };
   const delVisit = (i) => update((d) => { d.visitLog.splice(i, 1); });

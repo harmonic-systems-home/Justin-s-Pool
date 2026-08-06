@@ -54,21 +54,10 @@ export const DEFAULT_CONFIG = {
     wattsByRpm: { 1350: 136, 3450: 2398 },
     wattsProv: prov("measured", "2026-07-20", "1350 clamp 7/20; 3450 display 1/26/24"),
     gpmPerRpm: 0.02, gpmProv: prov("est", null, "back-solved from the handoff's ~62k gal/day"),
-    // The pump's complete 8-slot configuration register — the mirror of the
-    // device (record-follows-device). Scheduled slots (1,2,5) mirror
-    // schedules.active, which drives the timeline/costs; the rest are here for
-    // completeness. Times are PUMP-CLOCK; real = start − clocks.intelliflo offset.
-    slots: [
-      { slot: 1, mode: "Schedule", rpm: 3250, start: "07:00", end: "15:05", prov: prov("measured", "2026-07-20") },
-      { slot: 2, mode: "Schedule", rpm: 3000, start: "15:00", end: "18:02", prov: prov("measured", "2026-07-20", "overlaps Speed 1 3:00–3:05; higher RPM wins") },
-      { slot: 3, mode: "Egg timer", rpm: 3450, durationMin: 190, prov: prov("measured", "2026-07-20", "the heating run — 3 h 10 m") },
-      { slot: 4, mode: "Manual", rpm: 3030, prov: prov("measured", "2026-07-20", "on-demand button") },
-      { slot: 5, mode: "Schedule", rpm: 1350, start: "18:50", end: "06:55", prov: prov("measured", "2026-07-20") },
-      { slot: 6, mode: "Disabled", prov: prov("measured", "2026-07-20") },
-      { slot: 7, mode: "Disabled", prov: prov("measured", "2026-07-20") },
-      { slot: 8, mode: "Disabled", prov: prov("measured", "2026-07-20") },
-    ],
-    slotsVerified: "2026-07-20",
+    // The IntelliFlo tab's 8-slot register is DERIVED from schedules.active +
+    // eggTimers (see deriveSlots in tabs/IntelliFlo.jsx) — a single source of
+    // truth, so promoting a schedule updates the register automatically. No
+    // separate slots array is stored here anymore.
   },
 
   // Pad clock offsets (Commissioning test 17). offsetMin = clock − real (negative

@@ -10,22 +10,34 @@ import { wattsAt } from "../energy.js";
 const MODES = ["Schedule", "Egg timer", "Manual", "Disabled"];
 const today = () => new Date().toISOString().slice(0, 10);
 
+// The register is DERIVED from the single source of truth — no separate copy to
+// drift. Scheduled speeds come straight from schedules.active (what Daily
+// Operation & Costs show), the on-demand speeds from config.eggTimers. So
+// promoting a new schedule updates this tab automatically.
+function deriveSlots(config) {
+  const sched = config.schedules?.active || [];
+  const eggs = config.eggTimers || [];
+  const heat = eggs.find((e) => e.hours);            // heat-pool egg timer (has a duration)
+  const manual = eggs.find((e) => e.hours == null);  // manual utility button (no duration)
+  const rows = [];
+  sched.forEach((b) => rows.push({ slot: rows.length + 1, mode: "Schedule", rpm: b.rpm, start: b.start, end: b.end, label: b.label }));
+  if (heat) rows.push({ slot: rows.length + 1, mode: "Egg timer", rpm: heat.rpm, durationMin: Math.round(heat.hours * 60), label: heat.label });
+  if (manual) rows.push({ slot: rows.length + 1, mode: "Manual", rpm: manual.rpm, label: manual.label });
+  while (rows.length < 8) rows.push({ slot: rows.length + 1, mode: "Disabled" });
+  return rows;
+}
+
 export default function IntelliFlo({ config, update }) {
   const clkOff = config.clocks?.intelliflo?.offsetMin || 0;
-  const slots = config.pump.slots || [];
-  const setSlot = (i, patch) => update((d) => { d.pump.slots[i] = { ...d.pump.slots[i], ...patch, prov: { status: "measured", date: today(), note: "edited to match device" } }; });
+  const slots = deriveSlots(config);
 
   const cell = { padding: "4px 8px", verticalAlign: "middle", whiteSpace: "nowrap" };
   const inp = { font: mono(11.5), padding: "5px 6px", border: `1.5px solid ${C.pipe}`, borderRadius: 6, color: C.ink, background: "#fff" };
 
   return (
     <div>
-      <Card title="Speed register — all 8 slots" right={
-        <span style={{ font: mono(10), color: C.faint }}>
-          verified vs device {config.pump.slotsVerified || "—"}
-          <button onClick={() => update((d) => { d.pump.slotsVerified = today(); })}
-            style={{ marginLeft: 8, font: mono(10, 600), padding: "3px 7px", borderRadius: 6, border: `1.5px solid ${C.pipe}`, background: "#fff", color: C.faint, cursor: "pointer" }}>mark verified today</button>
-        </span>
+      <Card title="Speed register — the active schedule" right={
+        <span style={{ font: mono(10), color: C.faint }}>derived from the schedule</span>
       }>
         <div style={{ overflowX: "auto" }}>
           <table style={{ borderCollapse: "collapse", width: "100%", font: mono(11.5), color: C.ink }}>
@@ -34,11 +46,11 @@ export default function IntelliFlo({ config, update }) {
                 <th style={cell}>#</th><th style={cell}>Mode</th><th style={cell}>RPM</th>
                 <th style={cell}>Start–Stop / duration (pump clock)</th>
                 {clkOff !== 0 && <th style={cell}>Runs (real)</th>}
-                <th style={cell}>Watts</th><th style={cell}>Verified</th>
+                <th style={cell}>Watts</th>
               </tr>
             </thead>
             <tbody>
-              {slots.map((s, i) => {
+              {slots.map((s) => {
                 const disabled = s.mode === "Disabled";
                 const sched = s.mode === "Schedule";
                 const egg = s.mode === "Egg timer";
@@ -47,25 +59,13 @@ export default function IntelliFlo({ config, update }) {
                 return (
                   <tr key={s.slot} style={{ borderBottom: `1px solid ${C.pad}`, opacity: disabled ? 0.55 : 1 }}>
                     <td style={{ ...cell, fontWeight: 700 }}>{s.slot}</td>
+                    <td style={cell}>{s.mode}{s.label ? <span style={{ color: C.faint }}> · {s.label}</span> : ""}</td>
+                    <td style={cell}>{disabled ? "—" : `${s.rpm} RPM`}</td>
                     <td style={cell}>
-                      <select value={s.mode} onChange={(e) => setSlot(i, { mode: e.target.value })} style={inp}>
-                        {MODES.map((m) => <option key={m}>{m}</option>)}
-                      </select>
-                    </td>
-                    <td style={cell}>{disabled ? "—" : <NumField value={s.rpm ?? 0} step="50" min="0" width={66} onChange={(v) => setSlot(i, { rpm: v || 0 })} />}</td>
-                    <td style={cell}>
-                      {sched ? (
-                        <span style={{ display: "inline-flex", gap: 5, alignItems: "center" }}>
-                          <TimeField value={s.start || ""} onChange={(v) => setSlot(i, { start: v })} /><span style={{ color: C.faint }}>→</span>
-                          <TimeField value={s.end || ""} onChange={(v) => setSlot(i, { end: v })} />
-                        </span>
-                      ) : egg ? (
-                        <span><NumField value={s.durationMin ?? 0} step="5" width={64} onChange={(v) => setSlot(i, { durationMin: v || 0 })} /> min</span>
-                      ) : disabled ? "—" : <span style={{ color: C.faint }}>on-demand button</span>}
+                      {sched ? `${s.start}–${s.end}` : egg ? `${s.durationMin} min` : disabled ? "—" : <span style={{ color: C.faint }}>on-demand button</span>}
                     </td>
                     {clkOff !== 0 && <td style={{ ...cell, color: sched ? C.warn : C.faint }}>{sched ? fmtWindow(toRealBand({ start: s.start, end: s.end }, clkOff)) : "—"}</td>}
                     <td style={cell}>{watts == null ? "—" : <span title={measuredW ? "measured" : "affinity-law estimate"}>{Math.round(watts)} W{measuredW ? "" : " ~"}</span>}</td>
-                    <td style={cell}>{s.prov && <Badge prov={s.prov} />}</td>
                   </tr>
                 );
               })}
@@ -73,7 +73,7 @@ export default function IntelliFlo({ config, update }) {
           </table>
         </div>
         <div style={{ font: mono(10.5), color: C.faint, marginTop: 8, lineHeight: 1.5 }}>
-          This table is the device mirror — <b>editing here means "the pump was changed, update the record"</b> (record-follows-device), the complement of What-If's plan-then-promote. Scheduled slots (1, 2, 5) also drive the Daily timeline &amp; Costs via the Active schedule. Watts marked <b>~</b> are affinity-law estimates; the rest are measured. {clkOff ? "\"Runs (real)\" applies the IntelliFlo clock offset." : ""}
+          <b>Driven off the active schedule</b> — the same data Daily Operation &amp; Costs use — plus the on-demand speeds (heat run, manual). Promoting a schedule on <b>What-If</b> updates this automatically, so it can't drift. To change the schedule, edit it on <b>Daily Operation</b> or <b>What-If</b>. Watts marked <b>~</b> are affinity-law estimates; the rest are measured. {clkOff ? "\"Runs (real)\" applies the IntelliFlo clock offset." : ""}
         </div>
       </Card>
 
@@ -124,14 +124,14 @@ function Proc({ title, body, warn }) {
 
 // ── Practice emulator ───────────────────────────────────────────
 // A faithful IntelliFlo VS+SVRS keypad simulation. The menu tree below is taken
-// from the owner's manual (linked above); Speed 1–8 is populated from this pump's
-// real register, the other branches show the manual's factory defaults (the real
+// from the owner's manual (linked above); Speed 1–8 is populated from the active
+// schedule (same source as the register above), the other branches show the manual's factory defaults (the real
 // pad's values differ — verify on inspection). Field-observed on this pump: menu
 // navigation — browsing AND editing — does NOT interrupt the running program;
 // only an explicit Stop stops it, and Escape never starts or stops it.
 
 function Emulator({ config }) {
-  const slots = config.pump.slots || [];
+  const slots = deriveSlots(config);
   const slotByNum = (n) => slots.find((s) => s.slot === n);
   const modeWord = (s) => (s.mode === "Egg timer" ? "Egg Timer" : s.mode);
   // Each speed pages through its parameter screens (as observed on the real pad:

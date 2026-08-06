@@ -6,14 +6,18 @@ import { C, mono, Card, TextField } from "../ui.jsx";
 // visitLog namespace only — he can log work but never sees the sensitive fee.
 
 const WORK = [["chemicals", "chemicals"], ["brushed", "brushed"], ["baskets", "baskets"], ["cartridge", "cartridge cleaned"], ["other", "other"]];
+// Local YYYY-MM-DD (matches the date picker's local display) — the form defaults
+// the visit date to today, since that's almost always when it's being logged.
+const today = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`; };
 
 export default function ServiceVisits({ config, update }) {
-  const [visit, setVisit] = useState({ date: "", work: {}, psi: "", rpm: "3030", notes: "", by: "" });
+  const [visit, setVisit] = useState({ date: today(), work: {}, psi: "", rpm: "3030", notes: "", by: "" });
   const log = config.visitLog || [];
   const addVisit = () => {
-    if (!visit.date && !visit.psi && !visit.notes && Object.values(visit.work).every((v) => !v)) return;
+    // Date alone (the default) isn't a visit — require some actual content.
+    if (!visit.psi && !visit.notes && Object.values(visit.work).every((v) => !v)) return;
     update((d) => { d.visitLog.unshift({ ...visit, work: { ...visit.work } }); });
-    setVisit({ date: "", work: {}, psi: "", rpm: "3030", notes: "", by: "" });
+    setVisit({ date: today(), work: {}, psi: "", rpm: "3030", notes: "", by: "" });
   };
   const delVisit = (i) => update((d) => { d.visitLog.splice(i, 1); });
   const workSummary = (w) => WORK.filter(([k]) => w && w[k]).map(([, l]) => l).join(", ") || "—";

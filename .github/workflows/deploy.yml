@@ -1,4 +1,4 @@
-name: Deploy to GitHub Pages
+name: Deploy (GitHub Pages + Cloudflare Pages)
 
 on:
   push:
@@ -61,3 +61,27 @@ jobs:
     steps:
       - id: deployment
         uses: actions/deploy-pages@v4
+
+  # Also publish to Cloudflare Pages (justins-pool.pages.dev). Gated on `build`
+  # so the EXIF/GPS guard must pass first. The deploy step is skipped (job stays
+  # green) until CLOUDFLARE_API_TOKEN is set, so this can't red-X other pushes.
+  cloudflare:
+    needs: build
+    runs-on: ubuntu-latest
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - name: Deploy to Cloudflare Pages
+        if: ${{ env.CLOUDFLARE_API_TOKEN != '' }}
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: pages deploy dist --project-name=justins-pool --branch=main

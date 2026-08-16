@@ -53,7 +53,7 @@ export default function IntelliFlo({ config, update }) {
                 <th style={cell}>#</th><th style={cell}>Mode</th><th style={cell}>RPM</th>
                 <th style={cell}>Start–Stop / duration (pump clock)</th>
                 {clkOff !== 0 && <th style={cell}>Runs (real)</th>}
-                <th style={cell}>Watts</th>
+                <th style={cell}>Watts</th><th style={cell}>GPH</th>
               </tr>
             </thead>
             <tbody>
@@ -63,6 +63,7 @@ export default function IntelliFlo({ config, update }) {
                 const egg = s.mode === "Egg timer";
                 const watts = disabled ? null : wattsAt(s.rpm, config.pump);
                 const measuredW = config.pump.wattsByRpm?.[s.rpm] != null;
+                const gph = disabled ? "" : (config.pump.gphByRpm?.[s.rpm] ?? "");
                 return (
                   <tr key={s.slot} style={{ borderBottom: `1px solid ${C.pad}`, opacity: disabled ? 0.55 : 1 }}>
                     <td style={{ ...cell, fontWeight: 700 }}>{s.slot}</td>
@@ -73,6 +74,7 @@ export default function IntelliFlo({ config, update }) {
                     </td>
                     {clkOff !== 0 && <td style={{ ...cell, color: sched ? C.warn : C.faint }}>{sched ? fmtWindow(toRealBand({ start: s.start, end: s.end }, clkOff)) : "—"}</td>}
                     <td style={cell}>{watts == null ? "—" : <span title={measuredW ? "measured" : "affinity-law estimate"}>{Math.round(watts)} W{measuredW ? "" : " ~"}</span>}</td>
+                    <td style={cell}>{gph !== "" ? `${gph} gph` : "—"}</td>
                   </tr>
                 );
               })}
@@ -80,7 +82,7 @@ export default function IntelliFlo({ config, update }) {
           </table>
         </div>
         <div style={{ font: mono(10.5), color: C.faint, marginTop: 8, lineHeight: 1.5 }}>
-          <b>Mirrors the pump's actual 8-slot programming.</b> This firmware only allows <b>Schedule</b> mode on slots 5–8, so the two clock-driven runs live on <b>5 (overnight)</b> and <b>6 (turnover)</b>; slots 1/2/4 are Manual presets and 3 is the Egg-timer heat run. The two Schedule slots also drive the Daily timeline &amp; Costs. There's no web-editable programming — the pad is the source of truth; when it's reprogrammed, this record is updated to match. Watts marked <b>~</b> are affinity-law estimates; the rest are measured. {clkOff ? "\"Runs (real)\" applies the IntelliFlo clock offset." : ""}
+          <b>Mirrors the pump's actual 8-slot programming.</b> This firmware only allows <b>Schedule</b> mode on slots 5–8, so the two clock-driven runs live on <b>5 (overnight)</b> and <b>6 (turnover)</b>; slots 1/2/4 are Manual presets and 3 is the Egg-timer heat run. The two Schedule slots also drive the Daily timeline &amp; Costs. There's no web-editable programming — the pad is the source of truth; when it's reprogrammed, this record is updated to match. Watts marked <b>~</b> are affinity-law estimates; the rest are measured. GPH is measured flow from the pad meter — readings pending. {clkOff ? "\"Runs (real)\" applies the IntelliFlo clock offset." : ""}
         </div>
       </Card>
 

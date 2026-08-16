@@ -54,6 +54,11 @@ export const DEFAULT_CONFIG = {
     wattsByRpm: { 1350: 136, 3450: 2398 },
     wattsProv: prov("measured", "2026-07-20", "1350 clamp 7/20; 3450 display 1/26/24"),
     gpmPerRpm: 0.02, gpmProv: prov("est", null, "back-solved from the handoff's ~62k gal/day"),
+    // Measured flow (GPH) per RPM from the pad flow meter (installed 8/16) — empty
+    // until read. Keyed by RPM, parallel to wattsByRpm; when populated it becomes
+    // the measured-flow source and can replace the gpmPerRpm estimate in turnover.
+    gphByRpm: {},
+    gphProv: prov("pending", null, "flow meter installed — readings pending"),
     // The device's 8-slot register — the source of truth the IntelliFlo tab
     // mirrors (the pad has no web-editable programming; Justin sets it on the
     // pump, we record it here). Reprogrammed 8/16: this firmware only allows

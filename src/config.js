@@ -54,10 +54,22 @@ export const DEFAULT_CONFIG = {
     wattsByRpm: { 1350: 136, 3450: 2398 },
     wattsProv: prov("measured", "2026-07-20", "1350 clamp 7/20; 3450 display 1/26/24"),
     gpmPerRpm: 0.02, gpmProv: prov("est", null, "back-solved from the handoff's ~62k gal/day"),
-    // The IntelliFlo tab's 8-slot register is DERIVED from schedules.active +
-    // eggTimers (see deriveSlots in tabs/IntelliFlo.jsx) — a single source of
-    // truth, so promoting a schedule updates the register automatically. No
-    // separate slots array is stored here anymore.
+    // The device's 8-slot register — the source of truth the IntelliFlo tab
+    // mirrors (the pad has no web-editable programming; Justin sets it on the
+    // pump, we record it here). Reprogrammed 8/16: this firmware only allows
+    // SCHEDULE mode on slots 5–8, so the two clock-driven runs live on 5 (1350
+    // overnight) and 6 (2600 turnover); slots 1/2/4 are Manual presets and 3 is
+    // the Egg-timer heat run. schedules.active mirrors slots 5+6 for cost/timeline.
+    slots: [
+      { slot: 1, mode: "Manual", rpm: 1350, prov: prov("measured", "2026-08-16", "manual preset") },
+      { slot: 2, mode: "Manual", rpm: 2600, prov: prov("measured", "2026-08-16", "manual preset") },
+      { slot: 3, mode: "Egg timer", rpm: 3450, durationMin: 190, label: "heat run", prov: prov("measured", "2026-08-16", "3 h 10 m heating run") },
+      { slot: 4, mode: "Manual", rpm: 3030, prov: prov("measured", "2026-08-16", "on-demand button") },
+      { slot: 5, mode: "Schedule", rpm: 1350, start: "20:00", end: "06:55", label: "Overnight", prov: prov("measured", "2026-08-16") },
+      { slot: 6, mode: "Schedule", rpm: 2600, start: "06:55", end: "12:00", label: "Turnover", prov: prov("measured", "2026-08-16") },
+      { slot: 7, mode: "Disabled", prov: prov("measured", "2026-08-16") },
+      { slot: 8, mode: "Disabled", prov: prov("measured", "2026-08-16") },
+    ],
   },
 
   // Pad clock offsets (Commissioning test 17). offsetMin = clock − real (negative
@@ -93,17 +105,17 @@ export const DEFAULT_CONFIG = {
     splitFraction: { val: 0.12, prov: prov("est", null, "fraction of RETURN sent to the spa jets; excess spills over the weir. Calibrate via drain-rate test (full-SPA)") },
   },
 
-  // Per-window RPM is first-class (CHANGES-REQUESTED #2): Speed 1 and Speed 2 stay
-  // SEPARATE, matching the captured data including the 3:00–3:05 overlap.
+  // The clock-driven runs, mirroring the device's Schedule slots (5 = overnight,
+  // 6 = turnover). Drives the Daily timeline + Costs. Reprogrammed to the TOU
+  // 2-speed profile on 8/16 (was the old 3250/3000/1350).
   schedules: {
     active: [
-      { id: "s1", label: "Speed 1", rpm: 3250, start: "07:00", end: "15:05", hours: 8.08, prov: prov("measured", "2026-07-20") },
-      { id: "s2", label: "Speed 2", rpm: 3000, start: "15:05", end: "18:02", hours: 2.95, prov: prov("measured", "2026-07-20", "3:00–3:05 overlap charged to Speed 1") },
-      { id: "s5", label: "Speed 5", rpm: 1350, start: "18:50", end: "06:55", hours: 12.08, prov: prov("measured", "2026-07-20") },
+      { id: "turnover", label: "Turnover", rpm: 2600, start: "06:55", end: "12:00", hours: 5.08, prov: prov("measured", "2026-08-16", "Speed 6 schedule") },
+      { id: "overnight", label: "Overnight", rpm: 1350, start: "20:00", end: "06:55", hours: 10.92, prov: prov("measured", "2026-08-16", "Speed 5 schedule") },
     ],
     proposed: [
-      { id: "p1", label: "Turnover", rpm: 2600, start: "06:55", end: "12:00", hours: 5.08, prov: prov("est", "2026-07-20", "§6.5 draft") },
-      { id: "p2", label: "Overnight", rpm: 1350, start: "20:00", end: "06:55", hours: 10.92, prov: prov("est", "2026-07-20", "§6.5 draft") },
+      { id: "p1", label: "Turnover", rpm: 2600, start: "06:55", end: "12:00", hours: 5.08, prov: prov("est", "2026-07-20", "§6.5 draft — now promoted") },
+      { id: "p2", label: "Overnight", rpm: 1350, start: "20:00", end: "06:55", hours: 10.92, prov: prov("est", "2026-07-20", "§6.5 draft — now promoted") },
     ],
   },
 

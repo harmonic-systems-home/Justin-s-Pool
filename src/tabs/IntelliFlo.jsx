@@ -10,15 +10,22 @@ import { wattsAt } from "../energy.js";
 const MODES = ["Schedule", "Egg timer", "Manual", "Disabled"];
 const today = () => new Date().toISOString().slice(0, 10);
 
-// The register is DERIVED from the single source of truth — no separate copy to
-// drift. Scheduled speeds come straight from schedules.active (what Daily
-// Operation & Costs show), the on-demand speeds from config.eggTimers. So
-// promoting a new schedule updates this tab automatically.
+// The register mirrors the DEVICE's 8-slot register (config.pump.slots is the
+// source of truth — the pad has no web-editable programming). Normalized to 8
+// rows in slot order. Falls back to building from the active schedule + egg
+// timers only if no device mirror was ever recorded.
 function deriveSlots(config) {
+  const slots = config.pump?.slots;
+  if (slots && slots.length) {
+    const byNum = {};
+    slots.forEach((s) => { byNum[s.slot] = s; });
+    return Array.from({ length: 8 }, (_, i) => byNum[i + 1] || { slot: i + 1, mode: "Disabled" });
+  }
+  // Fallback: no device mirror — approximate from the schedule + egg timers.
   const sched = config.schedules?.active || [];
   const eggs = config.eggTimers || [];
-  const heat = eggs.find((e) => e.hours);            // heat-pool egg timer (has a duration)
-  const manual = eggs.find((e) => e.hours == null);  // manual utility button (no duration)
+  const heat = eggs.find((e) => e.hours);
+  const manual = eggs.find((e) => e.hours == null);
   const rows = [];
   sched.forEach((b) => rows.push({ slot: rows.length + 1, mode: "Schedule", rpm: b.rpm, start: b.start, end: b.end, label: b.label }));
   if (heat) rows.push({ slot: rows.length + 1, mode: "Egg timer", rpm: heat.rpm, durationMin: Math.round(heat.hours * 60), label: heat.label });
@@ -36,8 +43,8 @@ export default function IntelliFlo({ config, update }) {
 
   return (
     <div>
-      <Card title="Speed register — the active schedule" right={
-        <span style={{ font: mono(10), color: C.faint }}>derived from the schedule</span>
+      <Card title="Speed register — the 8 device slots" right={
+        <span style={{ font: mono(10), color: C.faint }}>mirrors the pump</span>
       }>
         <div style={{ overflowX: "auto" }}>
           <table style={{ borderCollapse: "collapse", width: "100%", font: mono(11.5), color: C.ink }}>
@@ -73,7 +80,7 @@ export default function IntelliFlo({ config, update }) {
           </table>
         </div>
         <div style={{ font: mono(10.5), color: C.faint, marginTop: 8, lineHeight: 1.5 }}>
-          <b>Driven off the active schedule</b> — the same data Daily Operation &amp; Costs use — plus the on-demand speeds (heat run, manual). Promoting a schedule on <b>What-If</b> updates this automatically, so it can't drift. To change the schedule, edit it on <b>Daily Operation</b> or <b>What-If</b>. Watts marked <b>~</b> are affinity-law estimates; the rest are measured. {clkOff ? "\"Runs (real)\" applies the IntelliFlo clock offset." : ""}
+          <b>Mirrors the pump's actual 8-slot programming.</b> This firmware only allows <b>Schedule</b> mode on slots 5–8, so the two clock-driven runs live on <b>5 (overnight)</b> and <b>6 (turnover)</b>; slots 1/2/4 are Manual presets and 3 is the Egg-timer heat run. The two Schedule slots also drive the Daily timeline &amp; Costs. There's no web-editable programming — the pad is the source of truth; when it's reprogrammed, this record is updated to match. Watts marked <b>~</b> are affinity-law estimates; the rest are measured. {clkOff ? "\"Runs (real)\" applies the IntelliFlo clock offset." : ""}
         </div>
       </Card>
 
@@ -124,8 +131,8 @@ function Proc({ title, body, warn }) {
 
 // ── Practice emulator ───────────────────────────────────────────
 // A faithful IntelliFlo VS+SVRS keypad simulation. The menu tree below is taken
-// from the owner's manual (linked above); Speed 1–8 is populated from the active
-// schedule (same source as the register above), the other branches show the manual's factory defaults (the real
+// from the owner's manual (linked above); Speed 1–8 is populated from the device
+// register (same source as the table above), the other branches show the manual's factory defaults (the real
 // pad's values differ — verify on inspection). Field-observed on this pump: menu
 // navigation — browsing AND editing — does NOT interrupt the running program;
 // only an explicit Stop stops it, and Escape never starts or stops it.

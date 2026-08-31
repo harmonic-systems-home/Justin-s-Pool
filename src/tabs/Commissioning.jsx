@@ -147,6 +147,14 @@ export default function Commissioning({ config, update }) {
         <Recorder config={config} update={update} id="waterfallDrain" placeholder="spa level fell? how fast?" />
       </TestCard>
 
+      <TestCard n="8b" title="Return-valve isolation → spa-heat leak" badge={badgeFor(prov("pending"))}
+        steps={["Why: heating the spa (both handles to SPA) DRAINS it (observed 8/16) — the RETURN diverter doesn't send 100% to the spa, so some heated flow bleeds to the pool and the spa's suction outpaces its refill. This measures how big that leak is.",
+          "FAST (with the flow meter): full-SPA at Speed 4 / 3030; time the spa's level drop (spa ≈ 38 ft² → ~24 gal per inch) = gph LOST, and read total flow Q off the meter. Leak = (1 − f) = gph_lost ÷ Q; the return's true spa share f = 1 − that.",
+          "NO meter: RETURN full SPA, then back the SUCTION off until the spa level holds — the suction position that balances ≈ the return's spa fraction f (keep the spa just below the weir so spillover doesn't confound; it moves slowly, be patient).",
+          "FIX ladder (cheapest first): turn the RETURN handle firmly to its hard stop; check the Jandy adjustable travel-stops aren't limiting rotation; clear debris from the box. Rebuild the diverter seal (top screws, PUMP OFF, ~$20–40 kit) only if none of those close it."]}>
+        <Recorder config={config} update={update} id="returnIsolation" placeholder="gph lost / total Q → f = …" />
+      </TestCard>
+
       <TestCard n={9} title="SunTouch AUX / lights test" badge={badgeFor(prov("pending"))}
         steps={["Press AUX 1/2/3; listen for relays; meter the deck J-boxes.", "Tests the niche-light circuit hypothesis."]}>
         <Recorder config={config} update={update} id="auxLights" placeholder="which AUX drives which load" />

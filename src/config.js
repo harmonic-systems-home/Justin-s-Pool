@@ -103,8 +103,11 @@ export const DEFAULT_CONFIG = {
   // spa has a DESIGNED OVERFLOW WEIR into the pool, so in the daily config
   // (suction=POOL, return=SPLIT) excess return spills back over the weir: the spa
   // level is pinned, no balancing is ever needed, and the spa can't steal pool
-  // water. Full SPA (both valves 180°) is used only for spa-heating sessions.
-  // Terminology standard: SUCTION / RETURN only — never "supply" (ambiguous).
+  // water. SUCTION should stay on POOL at all times: rotating it to SPA DRAINS the
+  // spa — its suction outpaces the return (which never fully isolates to the spa,
+  // so some heated flow still reaches the pool), and "both handles to SPA" empties
+  // the spa into the pool (observed 8/16). To warm the spa, move only the RETURN
+  // to SPA (spillover heat). Terminology: SUCTION / RETURN only — never "supply".
   valves: {
     suction: "pool", return: "split", pad: "pool",
     splitFraction: { val: 0.12, prov: prov("est", null, "fraction of RETURN sent to the spa jets; excess spills over the weir. Calibrate via drain-rate test (full-SPA)") },

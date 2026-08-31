@@ -74,14 +74,14 @@ const PROCEDURES = {
   heatSpa: {
     label: "Heat the spa",
     steps: [
-      "SUCTION → SPA and RETURN → SPA (both handles rotated 180°) — this is the only time both go to SPA",
-      "Hayward heater: MODE button until SPA is lit",
-      "Pad valve stays POOL — never WATERFALL while suction is on the spa (that would drain it)",
-      "IntelliFlo: press ON, then Speed 3 (3450 RPM)",
-      "Self-stops after 3 h 10 min",
-      "WHEN DONE: heater → STANDBY, both valves back to the daily config (SUCTION POOL, RETURN SPLIT)",
+      "RETURN → SPA (concentrate the heated flow on the spa jets; the spa overflows warm water to the pool)",
+      "⚠ SUCTION stays on POOL — do NOT rotate it to SPA. \"Both handles to the spa\" DRAINS the spa: its suction pulls faster than the (not-fully-isolated) return refills it, so the spa empties into the pool (observed 8/16).",
+      "Hayward heater: MODE button until SPA is lit; pad valve stays POOL",
+      "IntelliFlo: press ON, then Speed 3 (3450 RPM); self-stops after 3 h 10 min",
+      "WHEN DONE: heater → STANDBY, RETURN back to SPLIT (daily config)",
+      "This is spillover heating — the spa runs warm but stays coupled to the pool. A fully isolated hot soak may not be possible with the weir; verify it heats acceptably.",
     ],
-    state: { suction: "spa", return: "spa", vwf: "pool", heaterMode: "spa", pump: "manual3" },
+    state: { suction: "pool", return: "spa", vwf: "pool", heaterMode: "spa", pump: "manual3" },
   },
   waterfall: {
     label: "Waterfall show",
@@ -331,7 +331,7 @@ export default function DailyOperation({ config, update, now }) {
         <div key={i} style={{ background: "#FDF1EE", border: `1px solid ${C.warn}`, color: C.warn, borderRadius: 10, padding: "9px 12px", marginBottom: 7, font: mono(12.5) }}>⚠ {w}</div>
       ))}
       <div style={{ background: "#FBF6E7", border: `1px solid ${C.timer}`, color: C.timer, borderRadius: 10, padding: "9px 12px", marginBottom: 10, font: mono(12.5) }}>
-        RULE: keep SUCTION on POOL except for a spa-heating session. With pool suction the waterfall is safe (the spa just stops spilling); the drain-down trap only exists with SUCTION on SPA + pad valve on WATERFALL. A flowing spillway during a pump run is the healthy resting state — a silent one mid-run is the anomaly to investigate.
+        RULE: keep SUCTION on POOL — always. Moving it to SPA drains the spa (its suction pulls faster than the return refills it, so the spa empties into the pool — even at "both handles to SPA"). To warm the spa, move only the RETURN to SPA (spillover heat). With pool suction the waterfall is safe. A flowing spillway during a pump run is the healthy resting state — a silent one mid-run is the anomaly to investigate.
       </div>
 
       {/* active schedule editor (per-window RPM, unmerged) */}

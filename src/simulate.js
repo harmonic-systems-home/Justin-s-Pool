@@ -89,19 +89,23 @@ export function solve(s) {
   if (wantsHeat && s.pump === "schedule")
     warnings.push(`Heater left on ${s.heaterMode.toUpperCase()} — it WILL fire during the scheduled filter run (${s.pumpWindows.map(fmtWindow).join(", ")}), burning gas unattended. Return MODE to STANDBY after heating.`);
   if (wantsHeat && s.pump === "off") warnings.push("Heater mode set but pump is off — no flow, no fire.");
-  if (s.heaterMode === "spa" && !(s.suction === "spa" && s.return === "spa"))
-    warnings.push("Heater in SPA mode but the deck valves aren't both on SPA — to heat the spa alone, set SUCTION and RETURN both to SPA. As is, you're heating pool water toward the spa setpoint.");
-  if (s.heaterMode === "pool" && s.suction === "spa")
-    warnings.push("Heater in POOL mode but SUCTION is on SPA — you're circulating spa water on the pool thermostat; the spa can badly overheat.");
-  if (s.heaterMode !== "standby" && s.return === "split" && s.suction !== "spa")
-    warnings.push("Return valve at SPLIT while heating — heat is shared: some to the spa jets (then over the weir to the pool), the rest to the pool floor. Fine for gentle whole-system heat, but slower than isolating one body. To heat one fast, set both valves to it.");
-  // Spa drain-down, revised for the spillover config: the ONLY way to empty the
-  // spa is to draw it into suction (full SPA) AND divert the pad valve to the
-  // waterfall, so it leaves over the falls with no return. In the daily config
-  // (suction POOL) diverting to the waterfall is SAFE — the spa simply stops
-  // spilling and sits at its weir.
-  if (pumpRunning && s.vwf === "waterfall" && s.suction === "spa")
-    warnings.push("HAZARD: SUCTION on SPA while the pad valve is on WATERFALL — spa water is pumped out over the falls with no return, draining it down. Put SUCTION back to POOL before running the waterfall.");
+  if (s.heaterMode === "spa" && s.return !== "spa")
+    warnings.push("Heater in SPA mode but the RETURN isn't on SPA — to warm the spa, send the RETURN to SPA (all the heated flow to the spa jets, which overflow to the pool). Leave SUCTION on POOL.");
+  if (s.heaterMode !== "standby" && s.return === "split")
+    warnings.push("Return valve at SPLIT while heating — heat is shared: some to the spa jets (then over the weir to the pool), the rest to the pool floor. Fine for gentle whole-system heat, but slower than concentrating the return on one body.");
+  // Spa drain-down (spillover config): drawing SUCTION from the spa empties it.
+  // The RETURN valve never fully isolates to the spa — even at "both handles to
+  // SPA" some heated flow still reaches the pool — so the spa's jets refill it
+  // slower than its suction pulls, and the spa drains INTO the pool (observed
+  // 8/16). On WATERFALL there's no spa return at all, so it empties fastest. In
+  // the daily config (SUCTION on POOL) the spa can't be drawn down — it stays
+  // pinned at the weir — so even the waterfall is safe.
+  if (pumpRunning && s.suction === "spa") {
+    const via = s.vwf === "waterfall" ? "out the waterfall, with no return to the spa"
+      : s.return === "spa" ? "into the pool — even at 'both to SPA' the return doesn't fully isolate, so its jets refill slower than the suction pulls"
+      : "into the pool, where the return is going";
+    warnings.push(`HAZARD: SUCTION on SPA drains the spa — the pump pulls it ${via}. Keep SUCTION on POOL; to warm the spa, move only the RETURN to SPA.`);
+  }
 
   if (s.filterDirty) warnings.push("Filter flagged DIRTY — flow cut ~45% everywhere downstream.");
 

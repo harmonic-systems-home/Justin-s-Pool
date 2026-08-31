@@ -293,6 +293,8 @@ export default function Commissioning({ config, update }) {
           onClick={() => { if (confirm("Zero all four pad-clock offsets? Do this only after R5 has actually set the clocks.")) update((d) => { Object.keys(d.clocks).forEach((k) => { d.clocks[k].offsetMin = 0; d.clocks[k].prov = prov("measured", today(), "set to real time (R5)"); }); }); }}>
           ✓ zero all clock offsets (after R5 sets the clocks)
         </div>
+        <RemediationRow config={config} update={update} id="R6" title="R6 · Actuate the booster-isolation valve → board interlock (future)"
+          body="Replace the manual 'red' ball valve on the booster feed with a Jandy Valve Actuator (JVA, ~$100–150, 24 VAC reversing) — it bolts onto the existing NeverLube valve stem, no plumbing change. Then the planned new board can make the manual rule impossible to get wrong: never energize the booster unless the valve is OPEN (deadhead protection, today a human rule); command it CLOSED + booster off whenever heating (isolated spa heat AND even deep-end pool heat, per test 8b); OPEN → wait out travel → booster on for cleaning. JVAs are slow (~30–90 s) and open-loop (no position feedback), so drive it with a reversing relay pair, sequence with travel delays, and track commanded position. Contingent on the board; folds into superseding the abandoned SunTouch and pairs with M4 (booster state becomes known, not inferred)." />
       </div>
 
       <Divider>Monitoring (M-series — YoLink LoRa; Justin's hub + account, Rick as shared app user)</Divider>

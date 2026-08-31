@@ -147,12 +147,12 @@ export default function Commissioning({ config, update }) {
         <Recorder config={config} update={update} id="waterfallDrain" placeholder="spa level fell? how fast?" />
       </TestCard>
 
-      <TestCard n="8b" title="Return-valve isolation → spa-heat leak" badge={badgeFor(prov("pending"))}
-        steps={["Why: heating the spa (both handles to SPA) DRAINS it (observed 8/16) — the RETURN diverter doesn't send 100% to the spa, so some heated flow bleeds to the pool and the spa's suction outpaces its refill. This measures how big that leak is.",
-          "FAST (with the flow meter): full-SPA at Speed 4 / 3030; time the spa's level drop (spa ≈ 38 ft² → ~24 gal per inch) = gph LOST, and read total flow Q off the meter. Leak = (1 − f) = gph_lost ÷ Q; the return's true spa share f = 1 − that.",
-          "NO meter: RETURN full SPA, then back the SUCTION off until the spa level holds — the suction position that balances ≈ the return's spa fraction f (keep the spa just below the weir so spillover doesn't confound; it moves slowly, be patient).",
-          "FIX ladder (cheapest first): turn the RETURN handle firmly to its hard stop; check the Jandy adjustable travel-stops aren't limiting rotation; clear debris from the box. Rebuild the diverter seal (top screws, PUMP OFF, ~$20–40 kit) only if none of those close it."]}>
-        <Recorder config={config} update={update} id="returnIsolation" placeholder="gph lost / total Q → f = …" />
+      <TestCard n="8b" title="Spa-heat drain → find & fix the leak path" badge={badgeFor(prov("pending"))}
+        steps={["Why: full-SPA (both handles to SPA) DRAINS the spa (observed 8/16). Two paths bleed its supply to the pool: (1) the RETROFIT booster/cleaner line — the idle booster passes trunk water to the pool cleaner, tee'd off the return trunk UPSTREAM of the return valve, so it bleeds no matter the Jandy position (likely primary); (2) the return valve not fully isolating to the spa.",
+          "KEY TEST — isolate the booster: there's a ball valve on the line from the heater output to the booster. ⚠ First make sure the booster is OFF and can't start (right Intermatic lever OFF / dogs out) — NEVER run it against a closed feed, it deadheads and burns the seals. Then close that ball valve and run full-SPA + heater SPA. Spa HOLDS → the booster bleed was the drain, and this is how to heat the spa isolated/hot. Spa still drains → the return valve leaks too.",
+          "QUANTIFY (optional, with the flow meter): full-SPA, time the spa drop (spa ≈ 38 ft² → ~24 gal per inch) = gph LOST, read total flow Q → leak = gph_lost ÷ Q.",
+          "FIX: if it's the booster line — keep that ball valve CLOSED while heating the spa (booster off), reopen it for cleaning. If the return valve also leaks — hard-stop the handle / check the Jandy travel-stops / clear debris / rebuild the diverter seal (top screws, PUMP OFF, ~$20–40 kit) last."]}>
+        <Recorder config={config} update={update} id="returnIsolation" placeholder="booster valve closed → spa holds? / gph lost ÷ Q = …" />
       </TestCard>
 
       <TestCard n={9} title="SunTouch AUX / lights test" badge={badgeFor(prov("pending"))}

@@ -94,15 +94,18 @@ export function solve(s) {
   if (s.heaterMode !== "standby" && s.return === "split")
     warnings.push("Return valve at SPLIT while heating — heat is shared: some to the spa jets (then over the weir to the pool), the rest to the pool floor. Fine for gentle whole-system heat, but slower than concentrating the return on one body.");
   // Spa drain-down (spillover config): drawing SUCTION from the spa empties it.
-  // The RETURN valve never fully isolates to the spa — even at "both handles to
-  // SPA" some heated flow still reaches the pool — so the spa's jets refill it
-  // slower than its suction pulls, and the spa drains INTO the pool (observed
-  // 8/16). On WATERFALL there's no spa return at all, so it empties fastest. In
-  // the daily config (SUCTION on POOL) the spa can't be drawn down — it stays
-  // pinned at the weir — so even the waterfall is safe.
+  // Two always-there paths bleed the spa's supply back to the pool: (1) the
+  // RETROFIT booster/cleaner line — the idle booster passes trunk water to the
+  // pool cleaner (the weep), and it tees off the return trunk UPSTREAM of the
+  // deck return valve, so it bleeds regardless of Jandy position (likely primary
+  // cause, per Justin 8/16); (2) the return valve not fully isolating to the spa.
+  // Either way the spa's jets refill slower than its suction pulls, so it drains
+  // INTO the pool (observed 8/16). On WATERFALL there's no spa return at all, so
+  // it empties fastest. In the daily config (SUCTION on POOL) the spa isn't drawn
+  // down — it stays pinned at the weir — so even the waterfall is safe.
   if (pumpRunning && s.suction === "spa") {
     const via = s.vwf === "waterfall" ? "out the waterfall, with no return to the spa"
-      : s.return === "spa" ? "into the pool — even at 'both to SPA' the return doesn't fully isolate, so its jets refill slower than the suction pulls"
+      : s.return === "spa" ? "into the pool via the always-open booster/cleaner line (and any return-valve bleed) — faster than the spa jets refill it"
       : "into the pool, where the return is going";
     warnings.push(`HAZARD: SUCTION on SPA drains the spa — the pump pulls it ${via}. Keep SUCTION on POOL; to warm the spa, move only the RETURN to SPA.`);
   }

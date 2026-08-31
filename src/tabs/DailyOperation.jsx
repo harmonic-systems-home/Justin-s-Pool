@@ -79,7 +79,7 @@ const PROCEDURES = {
       "Hayward heater: MODE button until SPA is lit; pad valve stays POOL",
       "IntelliFlo: press ON, then Speed 3 (3450 RPM); self-stops after 3 h 10 min",
       "WHEN DONE: heater → STANDBY, RETURN back to SPLIT (daily config)",
-      "This is spillover heating — the spa runs warm but stays coupled to the pool. A fully isolated hot soak may not be possible with the weir; verify it heats acceptably.",
+      "This is spillover heating — the spa runs warm but stays coupled to the pool. A hotter, ISOLATED soak may be possible by closing the booster feed valve (test it via Commissioning 8b — booster must be OFF first).",
     ],
     state: { suction: "pool", return: "spa", vwf: "pool", heaterMode: "spa", pump: "manual3" },
   },

@@ -100,16 +100,16 @@ export const DEFAULT_CONFIG = {
   // INDEPENDENT, not a ganged pair: a SUCTION select (LEFT sleeve, nearer the
   // pad — draws to the pump) and a RETURN select (RIGHT sleeve, nearer the spa,
   // carries the ←FLOW embossment — delivers to the spa jets / pool floor). The
-  // spa has a DESIGNED OVERFLOW WEIR into the pool, so in the daily config
-  // (suction=POOL, return=SPLIT) excess return spills back over the weir: the spa
-  // level is pinned, no balancing is ever needed, and the spa can't steal pool
-  // water. SUCTION should stay on POOL at all times: rotating it to SPA DRAINS the
-  // spa — its suction outpaces the return (which never fully isolates to the spa,
-  // so some heated flow still reaches the pool), and "both handles to SPA" empties
-  // the spa into the pool (observed 8/16). To warm the spa, move only the RETURN
-  // to SPA (spillover heat). Terminology: SUCTION / RETURN only — never "supply".
+  // spa has a DESIGNED OVERFLOW WEIR into the pool. Daily config (suction=POOL,
+  // return=SPLIT): excess return spills back over the weir, spa level pinned.
+  // The RETROFIT booster's feed has a manual "red" ball valve (boosterFeed): OPEN
+  // is a low-resistance short-circuit to a near-surface pool port (drains the spa
+  // in full-SPA, and skims heat off the surface during pool heat). CLOSING it
+  // (booster OFF first — deadhead risk) is the original installer's spa/heat step:
+  // CONFIRMED 8/16 — full-SPA with the red valve shut holds level and heats the
+  // spa to 97 °F in ~20 min. Terminology: SUCTION / RETURN only — never "supply".
   valves: {
-    suction: "pool", return: "split", pad: "pool",
+    suction: "pool", return: "split", pad: "pool", boosterFeed: "open",
     splitFraction: { val: 0.12, prov: prov("est", null, "fraction of RETURN sent to the spa jets; excess spills over the weir. Calibrate via drain-rate test (full-SPA)") },
   },
 

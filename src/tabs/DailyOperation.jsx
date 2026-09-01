@@ -59,7 +59,7 @@ const PROCEDURES = {
       "Deep end warms slower: some heated flow short-circuits out the booster/cleaner port (~12 ft, near-surface) instead of the ~60 ft loop to the floor returns. For more even heat, close the booster 'red' feed valve (booster OFF first — deadhead risk) so all flow reaches the floor returns; and keep the pump running a while after the burner stops to equalize.",
       "WHEN DONE: heater MODE → STANDBY, RETURN back to SPLIT (the daily spillover config); reopen the red valve if you closed it (before the booster can run again)",
     ],
-    state: { suction: "pool", return: "pool", vwf: "pool", heaterMode: "pool", pump: "manual3" },
+    state: { suction: "pool", return: "pool", vwf: "pool", heaterMode: "pool", pump: "manual3", boosterFeed: "open" },
   },
   heatPoolClogged: {
     label: "Heat pool — clogged-filter workaround",
@@ -70,19 +70,20 @@ const PROCEDURES = {
       "Real fix: have the filter cartridge cleaned",
       "WHEN DONE: heater → STANDBY, pad valve → POOL, RETURN → SPLIT",
     ],
-    state: { suction: "pool", return: "pool", vwf: "waterfall", heaterMode: "pool", pump: "manual3" },
+    state: { suction: "pool", return: "pool", vwf: "waterfall", heaterMode: "pool", pump: "manual3", boosterFeed: "open" },
   },
   heatSpa: {
-    label: "Heat the spa",
+    label: "Heat the spa (isolated)",
     steps: [
-      "RETURN → SPA (concentrate the heated flow on the spa jets; the spa overflows warm water to the pool)",
-      "⚠ SUCTION stays on POOL — do NOT rotate it to SPA. \"Both handles to the spa\" DRAINS the spa: its suction pulls faster than the (not-fully-isolated) return refills it, so the spa empties into the pool (observed 8/16).",
-      "Hayward heater: MODE button until SPA is lit; pad valve stays POOL",
-      "IntelliFlo: press ON, then Speed 3 (3450 RPM); self-stops after 3 h 10 min",
-      "WHEN DONE: heater → STANDBY, RETURN back to SPLIT (daily config)",
-      "This is spillover heating — the spa runs warm but stays coupled to the pool. A hotter, ISOLATED soak may be possible by closing the booster feed valve (test it via Commissioning 8b — booster must be OFF first).",
+      "Booster OFF and unable to start — right Intermatic lever OFF / dogs out. Required before the next step.",
+      "Close the booster 'red' feed valve — this ISOLATES the spa (the original installer's spa-heat step). Confirmed 8/16: holds level, spa to 97 °F in ~20 min.",
+      "SUCTION → SPA and RETURN → SPA (both handles rotated 180°).",
+      "Hayward heater: MODE button until SPA is lit; pad valve stays POOL.",
+      "IntelliFlo: press ON, then Speed 3 (3450 RPM).",
+      "WHEN DONE: heater → STANDBY, both valves back to daily (SUCTION POOL, RETURN SPLIT), and REOPEN the red valve — before the booster can run again.",
+      "No red valve handy? Gentle alternative: RETURN → SPA, SUCTION stays POOL — warms the spa slowly via spillover and never drains (but won't get as hot, as fast).",
     ],
-    state: { suction: "pool", return: "spa", vwf: "pool", heaterMode: "spa", pump: "manual3" },
+    state: { suction: "spa", return: "spa", vwf: "pool", heaterMode: "spa", pump: "manual3", boosterFeed: "closed" },
   },
   waterfall: {
     label: "Waterfall show",
@@ -92,7 +93,7 @@ const PROCEDURES = {
       "IntelliFlo: press ON, Speed 3 (or button 3 ≈ 2800 RPM)",
       "WHEN DONE: pad valve → POOL (the spa resumes spilling over the weir)",
     ],
-    state: { suction: "pool", return: "split", vwf: "waterfall", heaterMode: "standby", pump: "manual3" },
+    state: { suction: "pool", return: "split", vwf: "waterfall", heaterMode: "standby", pump: "manual3", boosterFeed: "open" },
   },
   daily: {
     label: "Normal day (hands off)",
@@ -103,7 +104,7 @@ const PROCEDURES = {
       "Midday (dirty season): booster timer runs the Polaris hose cleaner",
       "Robot cleaner + surface skimmer self-manage; heater stays in STANDBY",
     ],
-    state: { suction: "pool", return: "split", vwf: "pool", heaterMode: "standby", pump: "schedule" },
+    state: { suction: "pool", return: "split", vwf: "pool", heaterMode: "standby", pump: "schedule", boosterFeed: "open" },
   },
 };
 
@@ -164,7 +165,8 @@ export default function DailyOperation({ config, update, now }) {
   const activeReal = toRealBands(active, clkOff);
 
   const [sim, setSim] = useState(() => ({
-    suction: config.valves.suction, return: config.valves.return, vwf: config.valves.pad, heaterMode: "standby",
+    suction: config.valves.suction, return: config.valves.return, vwf: config.valves.pad,
+    boosterFeed: config.valves.boosterFeed || "open", heaterMode: "standby",
     pump: "schedule", filterDirty: true, ...load(KEY_SIM, {}),
   }));
   const [proc, setProc] = useState(null);
@@ -280,9 +282,18 @@ export default function DailyOperation({ config, update, now }) {
           <text x={P.spa.x + 40} y={P.spa.y - 40} textAnchor="middle" style={{ font: "500 8.5px 'IBM Plex Mono', monospace", fill: C.faint }}>spa jets</text>
           <text x="430" y="286" textAnchor="middle" style={{ font: "500 8px 'IBM Plex Mono', monospace", fill: C.faint }}>under-deck return trunk</text>
           <Box x={P.booster.x} y={P.booster.y} label="POLARIS BOOST"
-            sub={boostRunning ? "running" : boostWeep ? "off · port weeps" : bt.lever === "on" ? "on · no flow" : "off (seasonal)"}
+            sub={sim.boosterFeed === "closed" ? "isolated (red valve shut)" : boostRunning ? "running" : boostWeep ? "off · port weeps" : bt.lever === "on" ? "on · no flow" : "off (seasonal)"}
             small w={116} tone={boostRunning ? C.ink : C.faint}
             onClick={() => update((d) => { d.booster.lever = d.booster.lever === "on" ? "off" : "on"; })} />
+          {/* booster-feed 'red' ball valve — shutting it isolates the booster branch (the spa/heat step) */}
+          <g transform={`translate(${P.booster.x} 312)`} onClick={() => setS((p) => ({ boosterFeed: p.boosterFeed === "closed" ? "open" : "closed" }))} style={{ cursor: "pointer" }}>
+            <circle r="11" fill="#fff" stroke={C.warn} strokeWidth="2" />
+            <g transform={`rotate(${sim.boosterFeed === "closed" ? 90 : 0})`} style={{ transition: "transform 200ms ease" }}>
+              <rect x="-2.5" y="-10" width="5" height="12" rx="2.5" fill={C.warn} />
+            </g>
+            <text x="17" y="-2" style={{ font: "600 8px 'IBM Plex Mono', monospace", fill: C.warn }}>red valve</text>
+            <text x="17" y="8" style={{ font: "600 8px 'IBM Plex Mono', monospace", fill: sim.boosterFeed === "closed" ? C.warn : C.faint }}>{sim.boosterFeed === "closed" ? "SHUT" : "open"}</text>
+          </g>
           <Box x={P.cleaner.x} y={P.cleaner.y} label="HOSE CLEANER" small w={110} tone={C.faint} />
 
           <TimerBadge x={P.pump.x - 10} y={P.pump.y - 105} lines={["INTELLIFLO SCHED (pump clock)", ...active.map((b) => `${b.rpm}: ${fmtWindow(b)}`)]} />
@@ -406,6 +417,8 @@ export default function DailyOperation({ config, update, now }) {
         Spillway: the short falling dashes on the left are the spa's designed overflow weir back into the pool — it runs on every pump cycle in the daily config (RETURN split, SUCTION pool), which is why the spa never needs level-balancing. It carries heat (red) when the split-return is heated.
         <br />
         Cleaner line: solid flow = Polaris DRIVEN (Intermatic lever ON); a sparse slow trickle = the always-open port weep (booster off, but the tee is downstream of the heater so it runs hot during a heat run). Tap the dial lever or POLARIS BOOST to switch.
+        <br />
+        Red valve (tap it): shuts the booster feed to isolate that branch — the spa/heat step. Closed while both deck valves are on SPA heats the spa isolated without draining (confirmed: 97 °F in ~20 min); it also sends all flow to the floor returns for even deep-end pool heat. The booster must be OFF whenever it's shut (deadhead).
       </div>
     </div>
   );

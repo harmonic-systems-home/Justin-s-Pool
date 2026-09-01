@@ -68,8 +68,12 @@ export function solve(s) {
       // OFF → the idle centrifugal booster still passes a trickle, so the port
       // WEEPS a small always-open return (drawn distinctly). Both run hot during
       // a heat run since the tee is downstream of the heater.
-      active.add("boostTap").add("boostCleaner");
-      if (s.rightTimer?.lever !== "on") weeping.add("boostTap").add("boostCleaner");
+      // …unless the red booster-feed valve is CLOSED, which isolates the whole
+      // booster branch (no weep, no short-circuit) — the spa/heat-mode step.
+      if (s.boosterFeed !== "closed") {
+        active.add("boostTap").add("boostCleaner");
+        if (s.rightTimer?.lever !== "on") weeping.add("boostTap").add("boostCleaner");
+      }
     }
   }
 
@@ -93,21 +97,19 @@ export function solve(s) {
     warnings.push("Heater in SPA mode but the RETURN isn't on SPA — to warm the spa, send the RETURN to SPA (all the heated flow to the spa jets, which overflow to the pool). Leave SUCTION on POOL.");
   if (s.heaterMode !== "standby" && s.return === "split")
     warnings.push("Return valve at SPLIT while heating — heat is shared: some to the spa jets (then over the weir to the pool), the rest to the pool floor. Fine for gentle whole-system heat, but slower than concentrating the return on one body.");
-  // Spa drain-down (spillover config): drawing SUCTION from the spa empties it.
-  // Two always-there paths bleed the spa's supply back to the pool: (1) the
-  // RETROFIT booster/cleaner line — the idle booster passes trunk water to the
-  // pool cleaner (the weep), and it tees off the return trunk UPSTREAM of the
-  // deck return valve, so it bleeds regardless of Jandy position (likely primary
-  // cause, per Justin 8/16); (2) the return valve not fully isolating to the spa.
-  // Either way the spa's jets refill slower than its suction pulls, so it drains
-  // INTO the pool (observed 8/16). On WATERFALL there's no spa return at all, so
-  // it empties fastest. In the daily config (SUCTION on POOL) the spa isn't drawn
-  // down — it stays pinned at the weir — so even the waterfall is safe.
+  // Spa drain-down (spillover config), CONFIRMED 8/16: with SUCTION on SPA the spa
+  // drains because heated flow short-circuits out the retrofit booster/cleaner
+  // line (the always-open bleed) to the pool while the suction pulls the spa down.
+  // CLOSING the red booster-feed valve stops it — full-SPA then heats the spa
+  // ISOLATED (Justin: held level, 97 °F in ~20 min). On WATERFALL the return
+  // leaves over the falls, so it drains regardless of the red valve. In the daily
+  // config (SUCTION on POOL) the spa is never drawn down.
   if (pumpRunning && s.suction === "spa") {
-    const via = s.vwf === "waterfall" ? "out the waterfall, with no return to the spa"
-      : s.return === "spa" ? "into the pool via the always-open booster/cleaner line (and any return-valve bleed) — faster than the spa jets refill it"
-      : "into the pool, where the return is going";
-    warnings.push(`HAZARD: SUCTION on SPA drains the spa — the pump pulls it ${via}. Keep SUCTION on POOL; to warm the spa, move only the RETURN to SPA.`);
+    if (s.vwf === "waterfall")
+      warnings.push("HAZARD: SUCTION on SPA + pad valve on WATERFALL — the spa is pumped out over the falls with no return, draining it. Put SUCTION back to POOL.");
+    else if (s.boosterFeed !== "closed")
+      warnings.push("HAZARD: SUCTION on SPA with the booster feed OPEN — heated flow short-circuits out the booster/cleaner line to the pool, draining the spa. Close the red booster-feed valve (booster OFF first) to heat the spa isolated, or keep SUCTION on POOL.");
+    // else: red valve closed, no waterfall → isolated spa heat, no drain.
   }
 
   if (s.filterDirty) warnings.push("Filter flagged DIRTY — flow cut ~45% everywhere downstream.");
@@ -115,6 +117,8 @@ export function solve(s) {
   // Right Intermatic → booster power (its lever is the master switch here).
   const rt = s.rightTimer ?? { dogsIn: false, lever: "off" };
   const boosterPowered = rt.lever === "on";
+  if (boosterPowered && s.boosterFeed === "closed")
+    warnings.push("HAZARD: booster feed valve CLOSED but the booster is powered (lever ON) — it's dead-heading against a shut valve and will burn its seals. Open the red valve, or pull the lever OFF.");
   if (boosterPowered && !pumpRunning)
     warnings.push("Booster powered (lever ON) with the main pump off — dead-heading, burns seals. Pull the lever OFF.");
   if (boosterPowered && pumpRunning && s.vwf === "waterfall")
